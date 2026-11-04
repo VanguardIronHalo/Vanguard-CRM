@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Vanguard CRM</title>
+<link rel="icon" type="image/png" href="/vanguard-v.png">
+<link rel="apple-touch-icon" href="/vanguard-v.png">
+<meta name="theme-color" content="#2E3192">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Carlito:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: command bar on top, list workspace below, account record slides in from the right (full screen on phones) */
+:root{
+  --bg:#F3F4F9; --surface:#FFFFFF; --sunk:#E9EBF4; --ink:#0B0C1A; --muted:#5A5E7A; --line:#D9DCEA;
+  --brand:#2E3192; --brand-ink:#FFFFFF; --brand-soft:#E6E7F6;
+  --ok:#1B7F4B; --ok-soft:#E1F3E9; --warn:#A35F00; --warn-soft:#FBEFD9; --bad:#B42318; --bad-soft:#FBE4E1;
+  --f-display:"Barlow Condensed","Arial Narrow",Calibri,sans-serif;
+  --f-body:Calibri,Carlito,"Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --shadow:0 12px 40px rgba(11,12,26,.18);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#090A13; --surface:#12142A; --sunk:#0D0F20; --ink:#ECEDF7; --muted:#9A9DBA; --line:#262944;
+  --brand:#7F84F2; --brand-ink:#090A13; --brand-soft:#1D2050;
+  --ok:#5FD39A; --ok-soft:#10301F; --warn:#F2B04E; --warn-soft:#33240B; --bad:#FF8A80; --bad-soft:#3A1512;
+  --shadow:0 12px 40px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#090A13; --surface:#12142A; --sunk:#0D0F20; --ink:#ECEDF7; --muted:#9A9DBA; --line:#262944;
+  --brand:#7F84F2; --brand-ink:#090A13; --brand-soft:#1D2050;
+  --ok:#5FD39A; --ok-soft:#10301F; --warn:#F2B04E; --warn-soft:#33240B; --bad:#FF8A80; --bad-soft:#3A1512;
+  --shadow:0 12px 40px rgba(0,0,0,.5); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar-in{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:10px;max-width:1400px;margin:0 auto}
+.mark{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:21px;letter-spacing:.06em;text-transform:uppercase}
+.mark img{display:block;height:40px;width:auto;background:#FFFFFF;border-radius:6px;padding:3px 5px;box-sizing:content-box}
+.mark small{font-family:var(--f-body);font-weight:400;font-size:13px;letter-spacing:0;text-transform:none;color:var(--muted)}
+nav.tabs{display:flex;gap:2px;flex-wrap:wrap}
+nav.tabs a{padding:7px 12px;border-radius:6px;color:var(--muted);text-decoration:none;font-family:var(--f-display);font-weight:600;font-size:16px;letter-spacing:.05em;text-transform:uppercase}
+nav.tabs a[aria-current="page"]{background:var(--brand-soft);color:var(--brand)}
+nav.tabs a .n{font-family:var(--f-mono);font-size:11px;margin-left:5px;opacity:.8}
+.whoami{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+select,input[type=text],input[type=date],input[type=search],textarea{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
+textarea{width:100%;min-height:84px;resize:vertical}
+main{max-width:1400px;margin:0 auto;padding-block:20px 60px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;letter-spacing:.03em;text-wrap:balance;margin:0}
+h2{font-size:22px;text-transform:uppercase}
+h3{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.lbl{font-family:var(--f-display);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 12px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--brand)}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.notice{padding:10px 14px;border-radius:8px;background:var(--warn-soft);color:var(--warn);margin-bottom:16px}
+.notice[hidden]{display:none}
+
+/* stage pills */
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--sunk);color:var(--muted)}
+.st-Researched{background:var(--brand-soft);color:var(--brand)}
+.st-Contacted,.st-Meeting{background:var(--warn-soft);color:var(--warn)}
+.st-Proposal{background:var(--brand);color:var(--brand-ink)}
+.st-Won,.st-Current-client{background:var(--ok-soft);color:var(--ok)}
+.st-Lost{background:var(--bad-soft);color:var(--bad)}
+.type-client{background:var(--ok);color:var(--surface)}
+.type-prospect{background:var(--sunk);color:var(--ink)}
+
+/* home */
+.stagebar{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0 26px}
+.stagebar button{border:0;background:var(--surface);padding:12px 14px;text-align:left;display:flex;flex-direction:column;gap:2px}
+.stagebar button:hover{background:var(--brand-soft)}
+.stagebar b{font-family:var(--f-display);font-size:30px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.homegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.panel h3{margin-bottom:10px}
+.mini{display:flex;flex-direction:column}
+.mini button{border:0;border-top:1px solid var(--line);background:none;text-align:left;padding:9px 0;display:grid;grid-template-columns:1fr auto;gap:2px 12px}
+.mini button:first-child{border-top:0}
+.mini button:hover .co{color:var(--brand)}
+.co{font-weight:700}
+.sub{font-size:13px;color:var(--muted);grid-column:1/-1;overflow-wrap:anywhere}
+.due-over{color:var(--bad);font-weight:700}
+.empty{color:var(--muted);padding:8px 0}
+
+/* list */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0}
+.toolbar input[type=search]{flex:1 1 220px}
+.count{margin-left:auto;color:var(--muted);font-size:13px}
+.table{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tr{display:grid;grid-template-columns:minmax(0,2.4fr) 120px minmax(0,1.1fr) minmax(0,1.6fr) 104px 104px;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+.tr.prow{grid-template-columns:minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,1fr) minmax(0,1.3fr)}
+.tr.head{border-top:0;background:var(--sunk);padding-block:8px}
+.tr.head button{border:0;background:none;padding:0;text-align:left;font-family:var(--f-display);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tr.head button[aria-sort]{color:var(--brand)}
+.tr.row{cursor:pointer}
+.tr.row:hover{background:var(--brand-soft)}
+.tr.row.active{box-shadow:inset 3px 0 0 var(--brand)}
+.cell-co{min-width:0}
+.cell-co .co{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell-co .sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.unassigned{color:var(--muted);font-style:italic}
+.flag{font-size:11px;font-weight:700;color:var(--warn);margin-left:6px}
+@media (max-width:820px){
+  .tr.head{display:none}
+  .tr,.tr.prow{grid-template-columns:1fr auto;gap:4px 10px}
+  .tr .c-owner,.tr .c-next{grid-column:1/-1;font-size:13px}
+  .tr .c-visit,.tr .c-date{font-size:12px}
+  .whoami{margin-left:0}
+}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(9,10,19,.35);z-index:20}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(640px,100%);background:var(--bg);z-index:21;box-shadow:var(--shadow);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+.d-head{background:var(--surface);border-bottom:1px solid var(--line);padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.d-top{display:flex;gap:12px;align-items:flex-start}
+.d-top h2{font-size:26px;text-transform:none;flex:1;min-width:0;overflow-wrap:anywhere}
+.d-meta{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.d-meta label{display:flex;flex-direction:column;gap:3px}
+.d-actions{display:flex;gap:8px;flex-wrap:wrap}
+.d-scroll{overflow-y:auto;flex:1;padding:18px 20px 40px;display:flex;flex-direction:column;gap:18px}
+#dBody{display:flex;flex-direction:column;gap:18px}
+.composer{background:var(--surface);border:2px solid var(--brand);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.composer[hidden]{display:none}
+.composer .row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.composer label{display:flex;flex-direction:column;gap:4px}
+.composer .end{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.nextbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.nextbox .txt{flex:1;min-width:180px}
+.handoff{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:12px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.handoff div{flex:1;min-width:200px}
+.facts{display:grid;grid-template-columns:128px 1fr;gap:8px 14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.facts dt{font-family:var(--f-display);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-top:2px}
+.facts dd{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}
+@media (max-width:520px){.facts{grid-template-columns:1fr}.facts dd{margin-bottom:6px}}
+.copy{border:0;background:none;color:var(--brand);font-size:12px;font-weight:700;padding:0 4px}
+.people{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.person{background:var(--surface);padding:10px 14px;display:flex;flex-direction:column;gap:2px}
+.timeline{display:flex;flex-direction:column;gap:0;border-left:2px solid var(--line);margin-left:6px}
+.ev{position:relative;padding:0 0 16px 18px}
+.ev::before{content:"";position:absolute;left:-7px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--surface);border:2px solid var(--muted)}
+.ev.k-visit::before{background:var(--brand);border-color:var(--brand)}
+.ev.k-handoff::before{background:var(--warn);border-color:var(--warn)}
+.ev.k-converted::before{background:var(--ok);border-color:var(--ok)}
+.ev .h{display:flex;gap:8px;flex-wrap:wrap;align-items:baseline}
+.ev .kind{font-family:var(--f-display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:13px}
+.ev p{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* team */
+.teamlist{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;max-width:640px}
+.teamlist div{background:var(--surface);padding:10px 14px;display:flex;gap:12px;align-items:center}
+.teamlist div span{flex:1}
+.gsearch{position:relative;flex:1 1 170px;max-width:240px}
+.gsearch input{width:100%}
+.gres{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);max-height:60vh;overflow-y:auto;z-index:8}
+.gres .grp{padding:8px 12px 2px}
+.gres button{display:block;width:100%;border:0;background:none;text-align:left;padding:7px 12px}
+.gres button:hover,.gres button:focus{background:var(--brand-soft)}
+.fab{position:fixed;right:calc(20px + env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:15;box-shadow:var(--shadow);padding:12px 18px;border-radius:999px;font-size:15px}
+.deals{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.deal{background:var(--surface);padding:10px 14px;display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center}
+.deal .v{font-family:var(--f-display);font-weight:600;font-size:20px;font-variant-numeric:tabular-nums}
+.sechead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sechead h3{flex:1}
+.age{font-family:var(--f-mono);font-size:12px;font-weight:500;padding:1px 6px;border-radius:4px}
+.age-90{background:var(--bad-soft);color:var(--bad)}.age-60{background:var(--warn-soft);color:var(--warn)}.age-30{background:var(--sunk);color:var(--muted)}
+.tilebig{font-family:var(--f-display);font-size:30px;font-weight:600;font-variant-numeric:tabular-nums}
+.ownbox{display:flex;flex-direction:column;gap:3px;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--brand-soft);color:var(--brand);border-radius:999px;padding:3px 4px 3px 10px;font-weight:700;font-size:13px}
+.chip button{border:0;background:none;color:inherit;font-size:15px;line-height:1;padding:0 5px;border-radius:50%}
+.chip button:hover{background:var(--brand);color:var(--brand-ink)}
+.chips select{padding:4px 8px;font-size:13px}
+.adminbtn{text-decoration:none;color:var(--brand);border-color:var(--brand);padding:5px 10px;font-size:13px}
+.adminbtn[aria-current="page"]{background:var(--brand);color:var(--brand-ink)}
+.empname{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.switch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:700;color:var(--muted)}
+.switch input{position:absolute;opacity:0;width:1px;height:1px}
+.sw{width:34px;height:20px;border-radius:999px;background:var(--line);position:relative;transition:background .15s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--surface);transition:transform .15s}
+.switch input:checked+.sw{background:var(--brand)}
+.switch input:checked+.sw::after{transform:translateX(14px)}
+.switch input:checked~.swl{color:var(--brand)}
+.switch input:focus-visible+.sw{outline:2px solid var(--brand);outline-offset:2px}
+.switch input:disabled+.sw{opacity:.5}
+.dot{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:9px;background:var(--bad);color:var(--surface);font-family:var(--f-mono);font-size:11px;margin-left:5px;padding:0 4px}
+.subnav{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.subnav a{padding:8px 14px;text-decoration:none;color:var(--muted);font-family:var(--f-display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-bottom:3px solid transparent;margin-bottom:-1px}
+.subnav a[aria-current="page"]{color:var(--brand);border-bottom-color:var(--brand)}
+.rems{display:flex;flex-direction:column;gap:8px}
+#remBox{display:flex;flex-direction:column;gap:8px}
+.rem{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.rem.over{border-color:var(--bad);background:var(--bad-soft)}
+.rem-main{display:flex;gap:8px;flex-wrap:wrap;align-items:baseline;min-width:0;flex:1}
+.rem-type{font-weight:700}
+.rem-act{display:flex;gap:6px}
+.rem-act .btn{padding:5px 10px;font-size:13px}
+.linkish{border:0;background:none;padding:0;color:var(--brand);font-weight:700;text-align:left}
+.remset{border:1px solid var(--line);border-radius:8px;padding:8px 12px 12px}
+.remset legend{padding:0 4px}
+.remfields{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.chk{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:6px;font-weight:700;font-size:14px}
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(230px,1fr);gap:12px;overflow-x:auto;padding:14px 0 10px}
+.col{background:var(--sunk);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:200px;border:2px solid transparent}
+.col.over{border-color:var(--brand);background:var(--brand-soft)}
+.colhead{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.cards{display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 10px;display:flex;flex-direction:column;gap:2px;cursor:grab}
+.card:hover{border-color:var(--brand)}
+.card.dragging{opacity:.4}
+.cardmeta{display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.stat{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.stat b{font-family:var(--f-display);font-size:30px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.pacegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px}
+.pacecard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.pacecard.st-behind{border-color:var(--bad);box-shadow:inset 0 3px 0 var(--bad)}
+.pacecard.st-watch{box-shadow:inset 0 3px 0 var(--warn)}
+.pc-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pstat{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px}
+.ps-behind{background:var(--bad-soft);color:var(--bad)}.ps-watch{background:var(--warn-soft);color:var(--warn)}.ps-pace{background:var(--ok-soft);color:var(--ok)}.ps-idle{background:var(--sunk);color:var(--muted)}
+.why{margin:0;padding-left:18px;font-size:13px;color:var(--bad)}
+.st-watch .why{color:var(--warn)}
+.pc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pc-stats div{display:flex;flex-direction:column}
+.pc-stats b{font-family:var(--f-display);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.pc-stats span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.pc-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pc-foot .btn{margin-left:auto}
+.spark rect{fill:var(--line)}.spark rect.now{fill:var(--brand)}
+.tr.arow{grid-template-columns:120px 140px 130px minmax(0,1fr) minmax(0,2fr)}
+.aud-txt{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+@media (max-width:820px){.tr.arow{grid-template-columns:1fr 1fr}.aud-txt{grid-column:1/-1}}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:30;font-weight:700;max-width:90vw}
+@media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
+</style>
+
+<header class="bar"><div class="bar-in wrap">
+  <div class="mark"><img src="/vanguard-v.png" alt="Vanguard" width="50" height="40"><span>Vanguard CRM</span></div>
+  <nav class="tabs" id="tabs"></nav>
+  <div class="gsearch"><input type="search" id="gq" placeholder="Search companies, people, phone numbers" aria-label="Search everything" autocomplete="off"><div class="gres" id="gres" hidden></div></div>
+  <div class="whoami" id="whoami"></div>
+</div></header>
+
+<main class="wrap">
+  <div class="notice" id="notice" hidden></div>
+  <section id="view"></section>
+</main>
+
+<button class="btn pri fab" data-act="quicklog" id="fab">+ Quick log</button>
+<div id="drawerHost"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const STAGES=["Not researched","Researched","Contacted","Meeting","Proposal","Won","Lost","Parked","Current client"];
+const SERVICES=["Armed guard","Unarmed guard","Vehicle patrol","Remote monitoring","IronHalo","Fire watch","Event security"];
+const VIEWS=[["home","Pipeline"],["prospects","Prospects"],["clients","Clients"],["board","Board"],["people","People"],["mine","My Work"]];
+const TOUCH_TYPES=[["call","Call"],["email","Email"],["meeting","Meeting"],["visit","Site visit"]];
+const REM_TYPES=["Follow-up call","Zoom call","Email follow-up","Site visit","Send proposal","Catch up"];
+const ADMIN_VIEWS=[["pace","Team pace"],["audit","Audit log"],["employees","Employees"]];
+const TOUCHK=["call","email","meeting","visit","note"];
+const GENERIC=["gmail.com","yahoo.com","outlook.com","hotmail.com","icloud.com","aol.com","comcast.net","att.net","live.com","msn.com","me.com"];
+const DEAL_STAGES=["Open","Proposal sent","Negotiating","Won","Lost"];
+const S={users:[],reminders:[],boardAll:false,boardMine:false,au:{who:"",kind:"",q:""},admins:[],loginName:"",isOwner:false,levelAdmin:false,accounts:new Map(),activity:[],deals:[],team:[],me:"",view:"home",open:null,composer:null,loaded:false,canWrite:true,
+  f:{q:"",list:"",stage:"",owner:"",sort:"order",dir:1}};
+let db=null,user=null,uid=null;
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today=()=>new Date().toLocaleDateString("en-CA");
+const nowISO=()=>new Date().toISOString();
+const fmtDate=d=>{if(!d)return"";const t=new Date(d.length===10?d+"T12:00:00":d);return isNaN(t)?d:t.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})};
+const stCls=s=>"st-"+String(s||"").replace(/\s+/g,"-");
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+try{const f=JSON.parse(ls.get("vcrm.f")||"null");if(f)Object.assign(S.f,f)}catch(e){}
+S.me="";
+
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600)}
+function notice(msg){const n=$("#notice");n.textContent=msg||"";n.hidden=!msg}
+function errText(e){
+  if(e&&e.code==="permission-denied")return"You don't have permission to change that. Admins only, or sign in again.";
+  if(e&&e.code==="unauthenticated")return"Your sign in expired. Sign in again.";
+  if(e&&e.code==="invalid_argument"&&!S.canWrite)return"You have view access only, so changes can't be saved.";
+  if(e&&e.code==="quota_exceeded")return"The CRM database is full. Ask Matthew to clear old records.";
+  if(e&&e.code==="invalid_argument"){S.canWrite=false;render();return"This account can view but not edit the CRM."}
+  return"Couldn't save. Check your connection and try again.";}
+
+/* one write at a time per document */
+const chains={};
+function queue(path,fn){chains[path]=(chains[path]||Promise.resolve()).then(fn);return chains[path].catch(e=>{toast(errText(e));throw e})}
+function patchAccount(id,patch){if(!db)return Promise.reject();return queue("accounts/"+id,()=>db.doc("accounts/"+id).update({...patch,updatedAt:nowISO(),updatedBy:S.me||""}))}
+function logActivity(rec){if(!db)return Promise.reject();return db.collection("activity").add({by:S.me||"",...rec,at:nowISO(),loggedBy:S.me,byUid:uid||null}).catch(e=>{toast(errText(e));throw e})}
+
+/* ---------- derived ---------- */
+const accts=()=>[...S.accounts.values()];
+const own=a=>Array.isArray(a.owners)?a.owners:(a.owner?[a.owner]:[]);
+const owns=(a,n)=>!!n&&own(a).includes(n);
+const ownTxt=a=>own(a).join(", ");
+const ownPatch=list=>({owners:list,owner:list[0]||"",assignedAt:nowISO()});
+const money=n=>"$"+Math.round(Number(n)||0).toLocaleString("en-US");
+const annual=d=>(Number(d.value)||0)*(d.term==="monthly"?12:1);
+const lastTouch=a=>[a.lastTouch,a.lastVisit,a.clientSince].filter(Boolean).sort().pop()||"";
+const daysSince=d=>d?Math.floor((Date.now()-new Date(d.length===10?d+"T12:00:00":d))/864e5):null;
+const ACTIVE=["Contacted","Meeting","Proposal","Won","Current client"];
+function needsAttention(){
+  return accts().filter(a=>a.type==="client"||ACTIVE.includes(a.stage)||(own(a).length&&a.stage!=="Parked"&&a.stage!=="Lost"))
+    .map(a=>{const lt=lastTouch(a),d=daysSince(lt||a.assignedAt);return {a,lt,d:d==null?9999:d}})
+    .filter(x=>x.d>=30).sort((x,y)=>y.d-x.d);}
+const isAdminView=v=>ADMIN_VIEWS.some(x=>x[0]===v);
+const openRems=()=>S.reminders.filter(r=>!r.done);
+const remsFor=id=>openRems().filter(r=>r.accountId===id).sort((a,b)=>String(a.due).localeCompare(b.due));
+const myRems=()=>openRems().filter(r=>S.me&&r.assignee===S.me).sort((a,b)=>String(a.due).localeCompare(b.due));
+function gcal(r){const a=S.accounts.get(r.accountId),d=String(r.due||today()).replace(/-/g,"");
+  let dates;if(r.time){const t=r.time.replace(":","")+"00";const h=Math.min(23,parseInt(r.time)+1);dates=`${d}T${t}/${d}T${String(h).padStart(2,"0")}${r.time.slice(3)}00`}
+  else{const n=new Date((r.due||today())+"T12:00:00");n.setDate(n.getDate()+1);dates=`${d}/${n.toLocaleDateString("en-CA").replace(/-/g,"")}`}
+  const q=new URLSearchParams({action:"TEMPLATE",text:`${r.type}${a?": "+a.company:""}`,dates,details:[r.note,a&&a.phone?"Phone: "+a.phone:"",a&&a.address?"Address: "+a.address:""].filter(Boolean).join("\n"),ctz:"America/Chicago"});
+  return "https://calendar.google.com/calendar/render?"+q.toString();}
+function remRow(r,showCo){const a=S.accounts.get(r.accountId),t=today(),over=r.due<t,dueToday=r.due===t;
+  return `<div class="rem ${over?"over":""}"><div class="rem-main">${showCo&&a?`<button class="linkish" data-open="${esc(a.id)}">${esc(a.company)}</button>`:""}<span class="rem-type">${esc(r.type)}</span>
+    <span class="mono ${over?"due-over":""}">${over?"Overdue · ":dueToday?"Today · ":""}${fmtDate(r.due)}${r.time?" "+esc(r.time):""}</span>${r.assignee&&r.assignee!==S.me?`<span class="muted">for ${esc(r.assignee)}</span>`:""}
+    ${r.note?`<div class="sub">${esc(r.note)}</div>`:""}</div>
+    <div class="rem-act"><a class="btn ghost" href="${esc(gcal(r))}" target="_blank" rel="noopener">Add to calendar</a><button class="btn" data-done="${esc(r.id)}" ${S.canWrite?"":"disabled"}>Done</button></div></div>`;}
+function remFields(on,a){const d=new Date(Date.now()+3*864e5).toLocaleDateString("en-CA");
+  return `<fieldset class="remset"><legend><label class="chk"><input type="checkbox" id="rOn" ${on?"checked":""}> Set a follow-up reminder</label></legend>
+    <div class="remfields" ${on?"":"hidden"}><div class="row2"><label><span class="lbl">Follow-up</span><select id="rType">${REM_TYPES.filter(x=>x!=="Catch up").map(x=>`<option>${x}</option>`).join("")}</select></label>
+    <label><span class="lbl">Date</span><input type="date" id="rDue" value="${d}"></label><label><span class="lbl">Time (optional)</span><input type="time" id="rTime"></label></div>
+    <div class="row2"><label><span class="lbl">Remind</span><select id="rWho">${ownerOpts(S.me)}</select></label><label><span class="lbl">Note</span><input type="text" id="rNote" placeholder="Send Zoom link, bring pricing for 3 sites"></label></div></div></fieldset>`;}
+async function addReminderFromForm(a){
+  const on=document.getElementById("rOn");if(on&&!on.checked)return;
+  const v=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
+  const r={accountId:a?a.id:"",type:v("rType")||"Follow-up call",due:v("rDue")||today(),time:v("rTime"),assignee:v("rWho")||S.me,note:v("rNote"),done:false,createdAt:nowISO(),createdBy:S.me};
+  await db.collection("reminders").add(r).catch(e=>{toast(errText(e));throw e});
+  if(a)await logActivity({accountId:a.id,kind:"reminder",text:`${r.type} for ${r.assignee||"unassigned"} on ${fmtDate(r.due)}${r.time?" at "+r.time:""}${r.note?". "+r.note:""}`});}
+function ageTag(d){const b=d>=90?90:d>=60?60:30;return `<span class="age age-${b}">${d>=9999?"Never touched":d+" days"}</span>`}
+function allPeople(){const r=[];accts().forEach(a=>(a.people||[]).forEach((p,i)=>r.push({...p,accountId:a.id,company:a.company,i})));return r}
+const domainOf=u=>String(u||"").toLowerCase().replace(/^https?:\/\//,"").replace(/^www\./,"").split(/[\/?#]/)[0];
+function lists(){return [...new Set(accts().map(a=>a.list).filter(Boolean))].sort((a,b)=>listRank(a)-listRank(b))}
+function listRank(l){const o=["Call This Week","Property Managers — Work Next","Prospect Book — Top 30 (CRM)","Distribution Centers — Warm Up","Prospect Book — Warm Up (CRM)","Referral Partner","Property Managers — Lower Fit","Parked","Added in CRM"];const i=o.indexOf(l);return i<0?50:i}
+function actFor(id){
+  const live=S.activity.filter(x=>x.accountId===id);
+  const a=S.accounts.get(id);const seed=(a&&a.seedLog||[]).map(x=>({kind:"research",date:x.date,text:x.text,by:x.by||"Research",at:x.date}));
+  return [...live,...seed].sort((x,y)=>String(y.at||"").localeCompare(String(x.at||"")));}
+function filtered(type){
+  const f=S.f,q=f.q.trim().toLowerCase();
+  let r=accts().filter(a=>type==="client"?a.type==="client":type==="mine"?owns(a,S.me):a.type!=="client");
+  if(type!=="mine"){
+    if(f.list)r=r.filter(a=>a.list===f.list);
+    if(f.stage)r=r.filter(a=>a.stage===f.stage);
+    if(f.owner)r=r.filter(a=>f.owner==="__none"?!own(a).length:owns(a,f.owner));
+  }
+  if(q)r=r.filter(a=>[a.company,a.contact,a.sector,a.address,a.why,ownTxt(a),(a.people||[]).map(p=>p.name).join(" ")].join(" ").toLowerCase().includes(q));
+  const k=type==="mine"?"nextDate":f.sort,d=type==="mine"?1:f.dir;
+  const val=a=>k==="order"?(listRank(a.list)*1000+(a.order||999)):k==="stage"?STAGES.indexOf(a.stage):k==="owner"?ownTxt(a):(a[k]||"");
+  r.sort((x,y)=>{const A=val(x),B=val(y);if(A===""&&B!=="")return 1;if(B===""&&A!=="")return-1;return (A>B?1:A<B?-1:0)*d||String(x.company).localeCompare(y.company)});
+  return r;}
+
+/* ---------- top level render ---------- */
+function render(){
+  const nP=accts().filter(a=>a.type!=="client").length,nC=accts().filter(a=>a.type==="client").length,nM=S.me?accts().filter(a=>owns(a,S.me)).length:0;
+  const counts={prospects:nP,clients:nC,mine:nM,people:allPeople().length};
+  const dueN=myRems().filter(r=>r.due<=today()).length;
+  $("#tabs").innerHTML=VIEWS.map(([k,l])=>`<a href="#${k}" ${S.view===k?'aria-current="page"':""}>${l}${counts[k]!=null?`<span class="n">${counts[k]}</span>`:""}${k==="mine"&&dueN?`<span class="dot" title="${dueN} follow-up${dueN===1?"":"s"} due">${dueN}</span>`:""}</a>`).join("");
+  if(isAdminView(S.view)&&!isAdmin()&&S.teamLoaded){location.hash="home";return}
+  const wa=$("#whoami");
+  if(S.me&&!wa.dataset.me){wa.dataset.me=S.me;wa.innerHTML=`<span>Signed in as <b style="color:var(--ink)">${esc(S.me)}</b></span><span id="adminSlot"></span><button class="btn ghost" data-act="pin" style="padding:5px 8px;font-size:13px">Change PIN</button><button class="btn ghost" data-act="signout" style="padding:5px 8px;font-size:13px">Sign out</button>`}
+  const slot=$("#adminSlot");if(slot)slot.innerHTML=isAdmin()?`<a class="btn adminbtn" href="#pace" ${isAdminView(S.view)?'aria-current="page"':""}>Admin</a>`:"";
+  const v=$("#view");
+  if(!S.loaded&&!S.accounts.size){v.innerHTML=`<div class="panel"><h3>Loading accounts</h3><p class="muted">Prospects, clients and activity will appear here in a moment.</p></div>`;}
+  else if(S.loaded&&!S.accounts.size&&!isAdminView(S.view)){v.innerHTML=`<div class="panel"><h3>No accounts yet</h3><p class="muted">Add your first prospect to start tracking owners, visits and notes.</p><p><button class="btn pri" data-act="new">Add prospect</button></p></div>`;}
+  else if(S.view==="home")v.innerHTML=homeHTML();
+  else if(S.view==="employees")v.innerHTML=adminNav()+employeesHTML();
+  else if(S.view==="pace")v.innerHTML=adminNav()+paceHTML();
+  else if(S.view==="audit"){const keep=document.activeElement&&document.activeElement.id==="auQ";if(!keep||!$("#auBody"))v.innerHTML=adminNav()+auditShell();$("#auBody").innerHTML=auditRows();}
+  else if(S.view==="board")v.innerHTML=boardHTML();
+  else if(S.view==="people"){
+    const keepQ=document.activeElement&&document.activeElement.id==="pq";
+    if(!keepQ||!$("#peopleBody"))v.innerHTML=`<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><h2>People</h2><button class="btn pri" data-act="newperson" style="margin-left:auto" ${S.canWrite?"":"disabled"}>Add contact</button></div>
+      <form class="composer" id="personForm" hidden style="margin-top:14px;border-width:1px"><h3>Add contact</h3><p class="muted" style="margin:0;font-size:13px">Type the email first. If its domain matches a company in the CRM, the contact is linked to it for you.</p>
+      <div class="row2"><label><span class="lbl">Email</span><input type="text" id="npEmail" inputmode="email" autocomplete="off"></label><label><span class="lbl">Name</span><input type="text" id="npName"></label></div>
+      <div class="row2"><label><span class="lbl">Title</span><input type="text" id="npTitle"></label><label><span class="lbl">Direct phone</span><input type="text" id="npPhone"></label></div>
+      <label><span class="lbl">Company</span><input type="text" id="npCo" list="npCoList" autocomplete="off"><datalist id="npCoList">${accts().map(a=>`<option value="${esc(a.company)}">`).join("")}</datalist></label><div id="npMatch" class="muted" style="font-size:13px"></div>
+      <div class="end"><button type="button" class="btn ghost" data-act="cancelperson">Cancel</button><button class="btn pri">Add contact</button></div></form>
+      <div class="toolbar"><input type="search" id="pq" placeholder="Search name, title, phone, email, company" value="${esc(S.pq||"")}"><span class="count" id="pcount"></span></div><div class="table" id="peopleBody"></div>`;
+    const q=(S.pq||"").toLowerCase().trim();
+    const r=allPeople().filter(p=>!q||[p.name,p.title,p.role,p.phone,p.email,p.company].join(" ").toLowerCase().includes(q)).sort((x,y)=>String(x.company).localeCompare(y.company));
+    $("#pcount").textContent=r.length+" shown";
+    $("#peopleBody").innerHTML=r.slice(0,400).map(p=>`<div class="tr row prow" data-open="${esc(p.accountId)}" tabindex="0">
+      <div class="ell"><b>${esc(p.name)}</b><div class="sub ell">${esc([p.title,p.role].filter(Boolean).join(" · "))}</div></div><div class="ell">${esc(p.company)}</div><div class="mono ell">${esc(p.phone||"")}</div><div class="mono ell">${esc(p.email||"")}</div></div>`).join("")||'<div class="tr"><span class="empty">No people match.</span></div>';
+  }
+  else{
+    const keepQ=document.activeElement&&document.activeElement.id==="q";
+    if(!keepQ||!$("#listBody"))v.innerHTML=listShell(S.view);
+    $("#listBody").innerHTML=listRows(S.view);
+    const rb=$("#remBox");if(rb){const mr=myRems();rb.innerHTML=mr.map(r=>remRow(r,true)).join("")||'<div class="empty">No follow-ups. Set one when you log a visit or call.</div>'}
+    const c=$("#count");if(c)c.textContent=filtered(S.view==="clients"?"client":S.view==="mine"?"mine":"prospect").length+" shown";
+  }
+  renderDrawer();
+}
+
+function homeHTML(){
+  const p=accts().filter(a=>a.type!=="client");
+  const byStage=STAGES.filter(s=>s!=="Current client").map(s=>[s,p.filter(a=>a.stage===s).length]);
+  const t=today(),wk=new Date(Date.now()+7*864e5).toLocaleDateString("en-CA");
+  const due=accts().filter(a=>a.nextDate&&a.nextDate<=wk).sort((a,b)=>a.nextDate.localeCompare(b.nextDate)).slice(0,12);
+  const ho=accts().filter(a=>a.handoff&&!a.handoff.accepted);
+  const ctw=p.filter(a=>a.list==="Call This Week");
+  const recent=S.activity.slice(0,14);
+  const openDeals=S.deals.filter(d=>!["Won","Lost"].includes(d.stage)),wonDeals=S.deals.filter(d=>d.stage==="Won");
+  const na=needsAttention(),naMine=S.me?na.filter(x=>owns(x.a,S.me)):na;
+  const item=(a,right,sub)=>`<button data-open="${esc(a.id)}"><span class="co">${esc(a.company)}</span><span>${right}</span><span class="sub">${sub}</span></button>`;
+  return `<h2>Pipeline</h2>
+  <div class="stagebar">${byStage.map(([s,n])=>`<button data-stage="${esc(s)}"><span class="lbl">${esc(s)}</span><b>${n}</b></button>`).join("")}
+    <button data-goto="clients"><span class="lbl">Clients</span><b>${accts().filter(a=>a.type==="client").length}</b></button></div>
+  <div class="homegrid">
+    <div class="panel"><h3>Deals</h3><div style="display:flex;gap:28px;flex-wrap:wrap">
+      <div><div class="tilebig">${money(openDeals.reduce((s,d)=>s+annual(d),0))}</div><span class="lbl">Open, per year · ${openDeals.length} deal${openDeals.length===1?"":"s"}</span></div>
+      <div><div class="tilebig">${money(wonDeals.reduce((s,d)=>s+annual(d),0))}</div><span class="lbl">Won, per year · ${wonDeals.length}</span></div></div>
+      <div class="mini" style="margin-top:10px">${openDeals.sort((a,b)=>String(a.closeDate||"9").localeCompare(b.closeDate||"9")).slice(0,6).map(d=>{const a=S.accounts.get(d.accountId);return a?item(a,`<span class="mono">${money(annual(d))}/yr</span>`,esc(`${d.name} · ${d.stage}${d.closeDate?" · close "+fmtDate(d.closeDate):""}`)):""}).join("")||'<div class="empty">No open deals. Add one from any account.</div>'}</div></div>
+    <div class="panel"><h3>Needs attention${S.me?" · yours":""}</h3><p class="muted" style="margin:-4px 0 8px;font-size:13px">Clients, active prospects and owned leads with no call, email, meeting, visit or note in 30+ days.</p><div class="mini">${naMine.slice(0,10).map(x=>item(x.a,ageTag(x.d),esc((own(x.a).length?ownTxt(x.a):"No owner")+" · "+x.a.stage+(x.lt?" · last touch "+fmtDate(x.lt):"")))).join("")||'<div class="empty">Every active account has been touched in the last 30 days.</div>'}${naMine.length>10?`<div class="empty">${naMine.length-10} more</div>`:""}</div></div>
+    <div class="panel"><h3>Follow-ups due in 7 days</h3><div class="rems">${openRems().filter(r=>r.due<=new Date(Date.now()+7*864e5).toLocaleDateString("en-CA")).sort((a,b)=>String(a.due).localeCompare(b.due)).slice(0,10).map(r=>remRow(r,true)).join("")||'<div class="empty">No follow-ups scheduled this week.</div>'}</div></div>
+    <div class="panel"><h3>Call this week</h3><div class="mini">${ctw.map(a=>item(a,`<span class="pill ${stCls(a.stage)}">${esc(a.stage)}</span>`,own(a).length?esc((own(a).length>1?"Owners: ":"Owner: ")+ownTxt(a)):'<span class="unassigned">No owner yet</span>')).join("")||'<div class="empty">Nothing on this list.</div>'}</div></div>
+    <div class="panel"><h3>Next steps due in 7 days</h3><div class="mini">${due.map(a=>item(a,`<span class="mono ${a.nextDate<t?"due-over":""}">${a.nextDate<t?"Overdue ":""}${fmtDate(a.nextDate)}</span>`,esc((own(a).length?ownTxt(a)+": ":"")+(a.nextAction||"")))).join("")||'<div class="empty">No next steps are scheduled. Set one from any account.</div>'}</div></div>
+    <div class="panel"><h3>Handoffs waiting</h3><div class="mini">${ho.map(a=>item(a,`<span class="mono">${fmtDate(a.handoff.at)}</span>`,esc(`${a.handoff.from||"Unassigned"} to ${a.handoff.to}`))).join("")||'<div class="empty">No leads are waiting to be accepted.</div>'}</div></div>
+    <div class="panel"><h3>Recent activity</h3><div class="mini">${recent.map(x=>{const a=S.accounts.get(x.accountId);return a?item(a,`<span class="mono">${fmtDate(x.at)}</span>`,esc(`${kindLabel(x.kind)} by ${x.by||"someone"}${x.text?": "+x.text.slice(0,90):""}`)):""}).join("")||'<div class="empty">Visits, notes and handoffs will show here as the team logs them.</div>'}</div></div>
+  </div>`;}
+
+function listShell(view){
+  const f=S.f,mine=view==="mine";
+  return `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><h2>${view==="clients"?"Clients":mine?"My Work":"Prospects"}</h2>
+    ${view==="prospects"?'<button class="btn pri" data-act="new" style="margin-left:auto">Add prospect</button>':""}</div>
+  ${mine&&!S.me?'<p class="notice">Pick your name at the top so the app knows which leads are yours.</p>':""}
+  ${mine?'<section class="panel" style="margin-top:14px"><h3>My follow-ups</h3><div id="remBox"></div></section>':""}
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="Search company, contact, sector, address" value="${esc(f.q)}">
+    ${mine?"":`<select id="fList" aria-label="List"><option value="">All lists</option>${lists().map(l=>`<option ${l===f.list?"selected":""}>${esc(l)}</option>`).join("")}</select>
+    <select id="fStage" aria-label="Stage"><option value="">All stages</option>${STAGES.map(s=>`<option ${s===f.stage?"selected":""}>${s}</option>`).join("")}</select>
+    <select id="fOwner" aria-label="Owner"><option value="">All owners</option><option value="__none" ${f.owner==="__none"?"selected":""}>No owner</option>${S.team.map(n=>`<option ${n===f.owner?"selected":""}>${esc(n)}</option>`).join("")}</select>
+    ${(f.list||f.stage||f.owner||f.q)?'<button class="btn ghost" data-act="clear">Clear</button>':""}`}
+    <span class="count" id="count"></span>
+  </div>
+  <div class="table">
+    <div class="tr head">${[["company","Company"],["stage","Stage"],["owner","Owners"],["nextAction","Next step"],["nextDate","Next date"],["lastVisit","Last visit"]].map(([k,l])=>`<button data-sort="${k}" ${!mine&&f.sort===k?'aria-sort="'+(f.dir>0?"ascending":"descending")+'"':""}>${l}${!mine&&f.sort===k?(f.dir>0?" ↑":" ↓"):""}</button>`).join("")}</div>
+    <div id="listBody"></div>
+  </div>`;}
+
+function listRows(view){
+  const r=filtered(view==="clients"?"client":view==="mine"?"mine":"prospect"),t=today();
+  if(!r.length)return `<div class="tr"><span class="empty">${view==="mine"?(S.me?"No accounts are assigned to you yet. Open any prospect and add yourself as an owner.":"Pick your name at the top."):"No accounts match these filters."}</span></div>`;
+  return r.map(a=>`<div class="tr row ${S.open===a.id?"active":""}" data-open="${esc(a.id)}" tabindex="0">
+    <div class="cell-co"><span class="co">${esc(a.company)}${a.handoff&&!a.handoff.accepted?'<span class="flag">HANDOFF</span>':""}</span><span class="sub">${esc(a.type==="client"?(a.services||[]).join(", ")||"Client":(a.list||""))}${a.sector?" · "+esc(a.sector):""}</span></div>
+    <div><span class="pill ${stCls(a.stage)}">${esc(a.stage)}</span></div>
+    <div class="c-owner ell">${own(a).length?esc(ownTxt(a)):'<span class="unassigned">No owner</span>'}</div>
+    <div class="c-next ell muted">${esc(a.nextAction||"")}</div>
+    <div class="c-date mono ${a.nextDate&&a.nextDate<t?"due-over":""}">${fmtDate(a.nextDate)}</div>
+    <div class="c-visit mono muted">${a.lastVisit?"Visited "+fmtDate(a.lastVisit):lastTouch(a)?"Touched "+fmtDate(lastTouch(a)):""}</div>
+  </div>`).join("");}
+
+function isAdmin(){return !!S.me&&S.admins.includes(S.me)}
+function employeesHTML(){
+  return `<h2>Employees</h2><p class="muted" style="max-width:66ch">Everyone here can sign in with their name and PIN, and appears in the owner and handoff menus. Turn on Admin next to a name to give that person the Admin pages.</p>
+  <form id="teamForm" class="toolbar" style="max-width:760px"><input type="text" id="teamName" placeholder="Full name" style="flex:1"><button class="btn pri">Add employee</button></form>
+  <div class="teamlist" style="max-width:760px">${S.users.filter(u=>u.active!==false).sort((a,b)=>lastName(a.name).localeCompare(lastName(b.name))).map(u=>{const n=u.name,c=accts().filter(a=>owns(a,n)).length,adm=!!u.admin,self=n===S.me;
+    return `<div><span class="empname"><b>${esc(n)}</b><label class="switch" title="${adm?"Admin":"Not admin"}"><input type="checkbox" data-admin="${esc(u.id)}" ${adm?"checked":""} ${self?"disabled":""}><span class="sw"></span><span class="swl">Admin</span></label>${self?'<span class="muted">(you)</span>':""}</span>
+    <span class="muted" style="font-size:13px">${u.hasPin?"PIN set":"No PIN yet"}${u.lastLogin?" · last in "+fmtDate(u.lastLogin):""}</span><span class="muted mono">${c} acct${c===1?"":"s"}</span>
+    ${u.hasPin?`<button class="btn ghost" data-resetpin="${esc(n)}">Reset PIN</button>`:""}${self?"":`<button class="btn ghost" data-rm="${esc(u.id)}">Remove</button>`}</div>`}).join("")||'<div><span class="muted">No employees yet.</span></div>'}</div>
+  <p class="muted" style="max-width:66ch;margin-top:14px;font-size:13px">Reset PIN signs that person out everywhere and lets them make a new PIN at their next sign in. Removing someone stops them signing in but keeps everything they logged.</p>`;}
+/* ---------- drawer ---------- */
+function kindLabel(k){return({employee:"Employee change",pinreset:"PIN reset",reminder:"Reminder set",followup:"Follow-up done",call:"Call",email:"Email",meeting:"Meeting",deal:"Deal",contact:"Contact added",visit:"Site visit",note:"Note",handoff:"Handoff",converted:"Became client",reverted:"Back to prospect",stage:"Stage change",owner:"Owner change",research:"Research",created:"Added",next:"Next step",accepted:"Handoff accepted",edit:"Details edited"})[k]||k}
+function ownerOpts(sel){return `<option value="">No owner</option>`+[...new Set([...S.team,sel].filter(Boolean))].map(n=>`<option ${n===sel?"selected":""}>${esc(n)}</option>`).join("")}
+
+function renderDrawer(){
+  const host=$("#drawerHost");
+  if(!S.open){host.innerHTML="";return}
+  if(S.open==="__new"){
+    if(!host.querySelector("#newForm")){host.dataset.id="";host.innerHTML=`<div class="scrim" data-act="close"></div><aside class="drawer" role="dialog" aria-label="Add prospect"><div class="d-head"><div class="d-top"><h2>Add prospect</h2><button class="btn ghost" data-act="close">Close</button></div></div><div class="d-scroll">${detailsForm({},"newForm")}</div></aside>`;}
+    return}
+  if(S.open==="__log"){
+    if(!host.querySelector("#quickForm")){host.dataset.id="";
+      const opts=accts().sort((x,y)=>{const mx=owns(x,S.me)?0:1,my=owns(y,S.me)?0:1;return mx-my||String(x.company).localeCompare(y.company)});
+      host.innerHTML=`<div class="scrim" data-act="close"></div><aside class="drawer" role="dialog" aria-label="Quick log"><div class="d-head"><div class="d-top"><h2>Quick log</h2><button class="btn ghost" data-act="close">Close</button></div></div><div class="d-scroll">
+      <form class="composer" id="quickForm" style="border-width:1px">
+        <label><span class="lbl">Company</span><input type="text" id="qCo" list="qCoList" placeholder="Start typing a company" required autocomplete="off"><datalist id="qCoList">${opts.map(a=>`<option value="${esc(a.company)}">`).join("")}</datalist></label>
+        <div class="row2"><label><span class="lbl">Type</span><select id="qType">${TOUCH_TYPES.map(([k,l])=>`<option value="${k}">${l}</option>`).join("")}<option value="note">Note</option></select></label>
+        <label><span class="lbl">Date</span><input type="date" id="qDate" value="${today()}"></label></div>
+        <label><span class="lbl">What happened</span><textarea id="qText" placeholder="Spoke with Dena, wants pricing for three buildings" required></textarea></label>
+        <div class="end"><button type="button" class="btn ghost" data-act="close">Cancel</button><button class="btn pri">Save</button></div></form></div></aside>`;
+      setTimeout(()=>$("#qCo")&&$("#qCo").focus(),30);}
+    return}
+  const a=S.accounts.get(S.open);if(!a){host.innerHTML="";return}
+  if(!host.querySelector(".drawer")||host.dataset.id!==a.id){
+    host.dataset.id=a.id;
+    host.innerHTML=`<div class="scrim" data-act="close"></div><aside class="drawer" role="dialog" aria-label="${esc(a.company)}">
+      <div class="d-head" id="dHead"></div>
+      <div class="d-scroll"><form class="composer" id="composer" hidden></form><div id="dBody"></div></div></aside>`;
+    S.composer=null;
+  }
+  const head=$("#dHead");
+  if(!head.contains(document.activeElement)){
+    const dis=S.canWrite?"":"disabled";
+    head.innerHTML=`<div class="d-top"><h2>${esc(a.company)}</h2><span class="pill type-${a.type}">${a.type==="client"?"Client":"Prospect"}</span><button class="btn ghost" data-act="close" aria-label="Close">Close</button></div>
+    <div class="d-meta">
+      <label for="dStage"><span class="lbl">Stage</span><select id="dStage" ${dis}>${STAGES.map(s=>`<option ${s===a.stage?"selected":""}>${s}</option>`).join("")}</select></label>
+      <div class="ownbox"><span class="lbl">Owners</span><div class="chips">${own(a).map(n=>`<span class="chip">${esc(n)}${S.canWrite?`<button type="button" data-unown="${esc(n)}" aria-label="Remove ${esc(n)}">×</button>`:""}</span>`).join("")||'<span class="unassigned">No owner</span>'}${S.canWrite&&S.team.some(n=>!owns(a,n))?`<select id="dOwnerAdd" aria-label="Add owner"><option value="">+ Add owner</option>${S.team.filter(n=>!owns(a,n)).map(n=>`<option>${esc(n)}</option>`).join("")}</select>`:""}</div></div>
+      ${a.lastVisit?`<div><span class="lbl">Last visit</span><div class="mono">${fmtDate(a.lastVisit)}</div></div>`:""}
+      ${a.type==="client"&&a.clientSince?`<div><span class="lbl">Client since</span><div class="mono">${fmtDate(a.clientSince)}</div></div>`:""}
+    </div>
+    <div class="d-actions">
+      <button class="btn pri" data-comp="touch" data-preset="visit" ${dis}>Log visit</button>
+      <button class="btn" data-comp="touch" data-preset="call" ${dis}>Log call or email</button>
+      <button class="btn" data-comp="note" ${dis}>Add note</button>
+      <button class="btn" data-comp="remind" ${dis}>Set reminder</button>
+      <button class="btn" data-comp="deal" ${dis}>Add deal</button>
+      <button class="btn" data-comp="next" ${dis}>Set next step</button>
+      <button class="btn" data-comp="handoff" ${dis}>Hand off</button>
+      ${a.type==="client"?`<button class="btn" data-comp="revert" ${dis}>Move back to prospect</button>`:`<button class="btn ok" data-comp="convert" ${dis}>Convert to client</button>`}
+      <button class="btn ghost" data-comp="edit" ${dis}>Edit details</button>
+    </div>`;}
+  $("#dBody").innerHTML=bodyHTML(a);
+}
+
+function factRow(k,v,copy){if(!v)return"";return `<dt>${k}</dt><dd>${esc(v)}${copy?` <button type="button" class="copy" data-copy="${esc(v)}">Copy</button>`:""}</dd>`}
+function bodyHTML(a){
+  const ev=actFor(a.id),t=today();
+  const ho=a.handoff&&!a.handoff.accepted?`<div class="handoff"><div><b>Handed off to ${esc(a.handoff.to)}</b> by ${esc(a.handoff.from||"Unassigned")} on ${fmtDate(a.handoff.at)}.${a.handoff.note?`<br>${esc(a.handoff.note)}`:""}</div>${S.me===a.handoff.to?`<button class="btn pri" data-act="accept">Accept lead</button>`:`<span class="lbl">Waiting on ${esc(a.handoff.to)}</span>`}</div>`:"";
+  return `${ho}
+  <div class="nextbox"><div class="txt"><span class="lbl">Next step</span><div>${a.nextAction?esc(a.nextAction):'<span class="muted">None set</span>'}</div></div>${a.nextDate?`<span class="mono ${a.nextDate<t?"due-over":""}">${a.nextDate<t?"Overdue · ":""}${fmtDate(a.nextDate)}</span>`:""}</div>
+  ${(()=>{const ds=S.deals.filter(d=>d.accountId===a.id);return ds.length?`<section><div class="sechead"><h3>Deals</h3></div><div class="deals">${ds.map(d=>`<div class="deal"><div><b>${esc(d.name)}</b><div class="sub">${esc(d.stage)}${d.owner?" · "+esc(d.owner):""}${d.closeDate?" · close "+fmtDate(d.closeDate):""}</div></div><div style="text-align:right"><div class="v">${money(d.value)}<span class="muted" style="font-size:13px">/${d.term==="monthly"?"mo":"yr"}</span></div><select data-dealstage="${esc(d.id)}" aria-label="Deal stage" ${S.canWrite?"":"disabled"}>${DEAL_STAGES.map(s=>`<option ${s===d.stage?"selected":""}>${s}</option>`).join("")}</select></div></div>`).join("")}</div></section>`:""})()}
+  ${(()=>{const rs=remsFor(a.id);return rs.length?`<section><div class="sechead"><h3>Follow-ups</h3></div><div class="rems">${rs.map(r=>remRow(r,false)).join("")}</div></section>`:""})()}
+  <section><h3>Activity</h3><div class="timeline" style="margin-top:12px">${ev.map(x=>`<div class="ev k-${esc(x.kind)}"><div class="h"><span class="kind">${esc(kindLabel(x.kind))}</span><span class="mono muted">${fmtDate(x.date||x.at)}</span><span class="muted">${esc(x.by||"")}</span></div>${x.text?`<p>${esc(x.text)}</p>`:""}${x.contactMet?`<p class="muted">Met with ${esc(x.contactMet)}</p>`:""}</div>`).join("")||'<p class="muted">No activity yet. Log a visit or add a note.</p>'}</div></section>
+  <section><h3 style="margin-bottom:10px">Account</h3><dl class="facts">
+    ${a.type==="client"?factRow("Services",(a.services||[]).join(", ")):""}
+    ${factRow("Why",a.why)}${factRow("Contact",a.contact)}${factRow("Phone",a.phone,1)}${factRow("Address",a.address,1)}${factRow("Website",a.website)}
+    ${factRow("List",a.list)}${factRow("Sector",a.sector)}${factRow("Tier",a.tier)}${factRow("Lane",a.lane)}${factRow("Route in",a.routeIn)}${factRow("Risk",a.risk)}
+    ${factRow("Local evidence",a.localEvidence)}${factRow("Latest note",a.latestNote)}${factRow("Wendy's notes",a.wendyNotes)}${factRow("Research",a.research)}${factRow("Verified",a.verifiedAsOf)}
+  </dl></section>
+  <section><div class="sechead"><h3>People</h3><button class="btn" data-comp="contact" ${S.canWrite?"":"disabled"}>Add contact</button></div>${(a.people||[]).length?`<div class="people">${a.people.map(p=>`<div class="person"><b>${esc(p.name)}</b><span class="muted">${esc([p.title,p.role].filter(Boolean).join(" · "))}</span>${p.phone?`<span class="mono">${esc(p.phone)} <button type="button" class="copy" data-copy="${esc(p.phone)}">Copy</button></span>`:""}${p.email?`<span class="mono">${esc(p.email)} <button type="button" class="copy" data-copy="${esc(p.email)}">Copy</button></span>`:""}</div>`).join("")}</div>`:'<p class="muted">No contacts on file yet.</p>'}</section>
+  <p class="mono muted">Record ${esc(a.id)}${a.updatedAt?" · updated "+fmtDate(a.updatedAt)+(a.updatedBy?" by "+esc(a.updatedBy):""):""}</p>`;}
+
+function detailsForm(a,id){
+  return `<form class="composer" id="${id}" style="border-width:1px">
+    <label><span class="lbl">Company</span><input type="text" id="${id}_company" value="${esc(a.company||"")}" required></label>
+    <div class="row2"><label><span class="lbl">Contact</span><input type="text" id="${id}_contact" value="${esc(a.contact||"")}"></label>
+    <label><span class="lbl">Phone</span><input type="text" id="${id}_phone" value="${esc(a.phone||"")}"></label></div>
+    <label><span class="lbl">Address</span><input type="text" id="${id}_address" value="${esc(a.address||"")}"></label>
+    <div class="row2"><label><span class="lbl">Sector</span><input type="text" id="${id}_sector" value="${esc(a.sector||"")}"></label>
+    <label><span class="lbl">Website</span><input type="text" id="${id}_website" value="${esc(a.website||"")}"></label></div>
+    <div class="row2"><label><span class="lbl">List</span><select id="${id}_list">${[...new Set([...lists(),"Added in CRM",a.list].filter(Boolean))].map(l=>`<option ${l===(a.list||"Added in CRM")?"selected":""}>${esc(l)}</option>`).join("")}</select></label>
+    ${id==="newForm"?`<label><span class="lbl">Owner</span><select id="${id}_owner">${ownerOpts(S.me)}</select></label>`:""}</div>
+    <label><span class="lbl">Why they fit</span><textarea id="${id}_why">${esc(a.why||"")}</textarea></label>
+    <div class="end"><button type="button" class="btn ghost" data-act="${id==="newForm"?"close":"cancel"}">Cancel</button><button class="btn pri">${id==="newForm"?"Add prospect":"Save details"}</button></div></form>`;}
+
+function openComposer(kind,preset){
+  const a=S.accounts.get(S.open);if(!a)return;
+  const c=$("#composer");S.composer=kind;c.hidden=false;c.dataset.kind=kind;c.style.borderWidth="";
+  const who=`<label><span class="lbl">By</span><select id="cBy">${ownerOpts(S.me)}</select></label>`;
+  const end=(lbl,cls="pri")=>`<div class="end"><button type="button" class="btn ghost" data-act="cancel">Cancel</button><button class="btn ${cls}">${lbl}</button></div>`;
+  const F={
+    touch:`<h3>${preset==="visit"?"Log site visit":"Log call, email or meeting"}</h3><div class="row2"><label><span class="lbl">Type</span><select id="cType">${TOUCH_TYPES.map(([k,l])=>`<option value="${k}" ${k===preset?"selected":""}>${l}</option>`).join("")}</select></label>
+      <label><span class="lbl">Date</span><input type="date" id="cDate" value="${today()}" required></label>${who}</div>
+      <label><span class="lbl">Who you talked to</span><input type="text" id="cMet" list="cMetList" placeholder="Name and title"><datalist id="cMetList">${(a.people||[]).map(p=>`<option value="${esc(p.name)}">`).join("")}</datalist></label>
+      <label><span class="lbl">Notes</span><textarea id="cText" placeholder="What you saw, what they need, what was promised"></textarea></label>${remFields(preset==="visit",a)}${end("Save")}`,
+    remind:`<h3>Set follow-up reminder</h3>${remFields(true,a).replace('<input type="checkbox" id="rOn" checked>','<input type="checkbox" id="rOn" checked disabled>')}${end("Set reminder")}`,
+    deal:`<h3>Add deal</h3><label><span class="lbl">Deal name</span><input type="text" id="dName" placeholder="Armed guard, 2 posts, 24/7" required></label>
+      <div class="row2"><label><span class="lbl">Value ($)</span><input type="text" id="dValue" inputmode="decimal" placeholder="12500" required></label>
+      <label><span class="lbl">Per</span><select id="dTerm"><option value="monthly">Month</option><option value="annual">Year</option></select></label>
+      <label><span class="lbl">Expected close</span><input type="date" id="dClose"></label></div>
+      <div class="row2"><label><span class="lbl">Stage</span><select id="dStage2">${DEAL_STAGES.map(s=>`<option>${s}</option>`).join("")}</select></label>
+      <label><span class="lbl">Owner</span><select id="dOwner2">${ownerOpts(own(a)[0]||S.me)}</select></label></div>${end("Add deal")}`,
+    contact:`<h3>Add contact</h3><div class="row2"><label><span class="lbl">Name</span><input type="text" id="pName" required></label><label><span class="lbl">Title</span><input type="text" id="pTitle"></label></div>
+      <div class="row2"><label><span class="lbl">Direct phone</span><input type="text" id="pPhone"></label><label><span class="lbl">Email</span><input type="text" id="pEmail" inputmode="email"></label></div>
+      <label><span class="lbl">Role</span><select id="pRole"><option value="">Choose</option><option>Decision maker</option><option>Ops / Security</option><option>Finance</option><option>Property manager</option><option>Gatekeeper</option><option>Referral</option></select></label>${end("Add contact")}`,
+    note:`<h3>Add note</h3><label><span class="lbl">Note</span><textarea id="cText" required></textarea></label>${end("Save note")}`,
+    next:`<h3>Next step</h3><label><span class="lbl">What happens next</span><input type="text" id="cNext" value="${esc(a.nextAction||"")}" placeholder="Call Dena about the full portfolio"></label>
+      <label><span class="lbl">Date</span><input type="date" id="cDate" value="${esc(a.nextDate||"")}"></label>${end("Save next step")}`,
+    handoff:`<h3>Hand off this lead</h3><p class="muted" style="margin:0">Current owners: ${esc(ownTxt(a)||"No owner")}. The new owner sees it under My Work until they accept.</p>
+      ${own(a).length?`<label><span class="lbl">Hand off from</span><select id="cFrom"><option value="">Nobody, add them alongside the current owners</option>${own(a).map(n=>`<option ${n===S.me?"selected":""}>${esc(n)}</option>`).join("")}</select></label>`:""}
+      <label><span class="lbl">Hand off to</span><select id="cTo" required><option value="">Choose a teammate</option>${S.team.filter(n=>!owns(a,n)).map(n=>`<option>${esc(n)}</option>`).join("")}</select></label>
+      <label><span class="lbl">What they need to know</span><textarea id="cText" placeholder="Where it stands, who to call, what was promised" required></textarea></label>${end("Hand off")}`,
+    convert:`<h3>Convert to client</h3><p class="muted" style="margin:0">${esc(a.company)} moves to Clients with the stage Current client. History and notes stay with it.</p>
+      <div class="row2"><label><span class="lbl">Client since</span><input type="date" id="cDate" value="${today()}" required></label>
+      </div>
+      <fieldset style="border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-wrap:wrap;gap:10px 16px"><legend class="lbl">Services</legend>${SERVICES.map((s,i)=>`<label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="svc${i}" value="${s}">${s}</label>`).join("")}</fieldset>
+      <label><span class="lbl">Contract notes</span><textarea id="cText" placeholder="Sites, hours, rate, start date"></textarea></label>${end("Convert to client","ok")}`,
+    revert:`<h3>Move back to prospect</h3><label><span class="lbl">Reason</span><textarea id="cText" placeholder="Contract ended, entered by mistake" required></textarea></label>${end("Move back")}`,
+    edit:detailsForm(a,"editForm").replace(/^<form[^>]*>/,"").replace(/<\/form>$/,"")
+  };
+  c.innerHTML=F[kind];
+  c.scrollIntoView({block:"nearest"});
+  const first=c.querySelector("textarea,input:not([type=date]),select");first&&first.focus();
+}
+function closeComposer(){const c=$("#composer");if(c){c.hidden=true;c.innerHTML=""}S.composer=null}
+
+async function submitComposer(){
+  const a=S.accounts.get(S.open);if(!a)return;const k=S.composer,v=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
+  const by=v("cBy")||S.me;
+  if(!S.me){toast("Sign in again.");return}
+  try{
+  if(k==="touch"){const d=v("cDate"),ty=v("cType");if(!d)return toast("Enter the date.");
+    await logTouch(a,ty,d,v("cText"),v("cMet"),by);await addReminderFromForm(a);toast((TOUCH_TYPES.find(x=>x[0]===ty)||[,"Activity"])[1]+" logged"+(document.getElementById("rOn")&&document.getElementById("rOn").checked?" and reminder set":""));}
+  if(k==="remind"){if(!v("rDue"))return toast("Pick a date for the reminder.");await addReminderFromForm(a);toast("Reminder set");}
+  if(k==="note"){const t=v("cText");if(!t)return toast("Write the note first.");await logTouch(a,"note",today(),t,"",S.me);toast("Note saved");}
+  if(k==="deal"){const n=v("dName"),val=parseFloat(v("dValue").replace(/[$,\s]/g,""));if(!n)return toast("Name the deal.");if(!(val>=0))return toast("Enter the deal value as a number.");
+    const deal={accountId:a.id,name:n,value:val,term:v("dTerm"),closeDate:v("dClose"),stage:v("dStage2"),owner:v("dOwner2"),createdAt:nowISO(),createdBy:S.me};
+    await db.collection("deals").add(deal).catch(e=>{toast(errText(e));throw e});
+    await logActivity({accountId:a.id,kind:"deal",text:`${n}: ${money(val)} per ${deal.term==="monthly"?"month":"year"}, ${deal.stage}`});
+    if(a.type!=="client"&&["Not researched","Researched","Contacted","Meeting"].includes(a.stage)&&deal.stage==="Proposal sent")await patchAccount(a.id,{stage:"Proposal"});
+    toast("Deal added");}
+  if(k==="contact"){const p={name:v("pName"),title:v("pTitle"),phone:v("pPhone"),email:v("pEmail").toLowerCase(),role:v("pRole"),confidence:"Added in CRM",addedBy:S.me,addedAt:today()};
+    if(!p.name)return toast("Enter the contact's name.");
+    if(p.email){const dup=allPeople().find(x=>(x.email||"").toLowerCase()===p.email);if(dup)return toast(`${p.email} is already on file for ${dup.name} at ${dup.company}.`)}
+    if((a.people||[]).some(x=>(x.name||"").toLowerCase()===p.name.toLowerCase()))return toast(p.name+" is already listed here.");
+    Object.keys(p).forEach(k=>{if(!p[k])delete p[k]});
+    await patchAccount(a.id,{people:[...(a.people||[]),p]});await logActivity({accountId:a.id,kind:"contact",text:p.name+(p.title?", "+p.title:"")});toast("Contact added");}
+  if(k==="next"){const n=v("cNext"),d=v("cDate");await patchAccount(a.id,{nextAction:n,nextDate:d});await logActivity({accountId:a.id,kind:"next",text:n+(d?" by "+fmtDate(d):"")});toast("Next step saved");}
+  if(k==="handoff"){const to=v("cTo"),t=v("cText");if(!to)return toast("Choose who gets the lead.");if(!t)return toast("Add a note for the new owner.");
+    const from=v("cFrom"),next=[...own(a).filter(n=>n!==from),to];
+    await patchAccount(a.id,{...ownPatch(next),handoff:{from:from||"",to,note:t,at:nowISO(),by:S.me,accepted:false}});
+    await logActivity({accountId:a.id,kind:"handoff",text:`${from||"Added"} to ${to}. ${t}`,from:from||"",to});toast((from?"Handed off to ":"Added ")+to);}
+  if(k==="convert"){const d=v("cDate"),svc=[...document.querySelectorAll("#composer input[type=checkbox]:checked")].map(x=>x.value);
+    await patchAccount(a.id,{type:"client",stage:"Current client",clientSince:d,services:svc,contractNotes:v("cText"),priorStage:a.stage});
+    await logActivity({accountId:a.id,kind:"converted",date:d,text:[svc.join(", "),v("cText")].filter(Boolean).join(". ")});toast(a.company+" is now a client");}
+  if(k==="revert"){const t=v("cText");if(!t)return toast("Give a reason.");
+    await patchAccount(a.id,{type:"prospect",stage:a.priorStage&&a.priorStage!=="Current client"?a.priorStage:"Contacted"});
+    await logActivity({accountId:a.id,kind:"reverted",text:t});toast("Moved back to prospects");}
+  if(k==="edit"){const p=readDetails("editForm");if(!p.company)return toast("Company name is required.");
+    await patchAccount(a.id,p);await logActivity({accountId:a.id,kind:"edit",text:"Account details updated"});toast("Details saved");}
+  closeComposer();
+  }catch(e){}
+}
+async function logTouch(a,kind,date,text,met,by){
+  await logActivity({accountId:a.id,kind,date,text,contactMet:met||"",by:by||S.me});
+  const p={};if(!a.lastTouch||date>a.lastTouch)p.lastTouch=date;if(kind==="visit"&&(!a.lastVisit||date>a.lastVisit))p.lastVisit=date;
+  if(a.type!=="client"&&["Not researched","Researched"].includes(a.stage)&&kind!=="note"){p.stage="Contacted";await logActivity({accountId:a.id,kind:"stage",text:`${a.stage} to Contacted (automatic after first touch)`,system:true})}
+  if(Object.keys(p).length)await patchAccount(a.id,p);}
+async function submitQuick(){
+  const name=$("#qCo").value.trim(),a=accts().find(x=>x.company.toLowerCase()===name.toLowerCase());
+  if(!a)return toast("Pick a company from the list, or add it as a prospect first.");
+  if(!S.me){toast("Pick your name at the top first.");return}
+  const t=$("#qText").value.trim();if(!t)return toast("Write what happened.");
+  try{await logTouch(a,$("#qType").value,$("#qDate").value||today(),t,"",S.me);toast("Logged to "+a.company);S.open=null;render()}catch(e){}}
+function readDetails(id){const o={};["company","contact","phone","address","sector","website","list","why"].forEach(f=>{const e=document.getElementById(id+"_"+f);if(e)o[f]=e.value.trim()});return o}
+
+async function addProspect(){
+  if(!db)return;const p=readDetails("newForm");if(!p.company)return toast("Company name is required.");
+  const norm=s=>String(s||"").toLowerCase().replace(/\b(inc|llc|co|corp|company|the)\b|[^a-z0-9]/g,"");
+  const dup=accts().find(x=>norm(x.company)===norm(p.company)||(p.website&&domainOf(x.website)&&domainOf(x.website)===domainOf(p.website)));
+  if(dup){S.open=dup.id;render();return toast(`${dup.company} is already in the CRM. Opened the existing record.`)}
+  const slug=p.company.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60)||"account";
+  let id=slug,n=2;while(S.accounts.has(id))id=slug+"-"+n++;
+  const owner=document.getElementById("newForm_owner").value;
+  try{await queue("accounts/"+id,()=>db.doc("accounts/"+id).set({...p,...ownPatch(owner?[owner]:[]),stage:"Not researched",type:"prospect",order:999,createdAt:today(),createdBy:S.me||"",updatedAt:nowISO()}));
+    await logActivity({accountId:id,kind:"created",text:"Added to the CRM"});
+    S.open=id;toast("Prospect added");render();}catch(e){}
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("[data-open],[data-act],[data-comp],[data-stage],[data-goto],[data-sort],[data-copy],[data-rm],[data-unown],[data-done],[data-nudge],[data-resetpin]");if(!t)return;
+  if(t.dataset.done){const r=S.reminders.find(x=>x.id===t.dataset.done);if(!r)return;try{await queue("reminders/"+r.id,()=>db.doc("reminders/"+r.id).update({done:true,doneAt:nowISO(),doneBy:S.me}));if(r.accountId)await logActivity({accountId:r.accountId,kind:"followup",text:`${r.type} completed`});toast("Marked done")}catch(err){}return}
+  if(t.dataset.nudge){const n=t.dataset.nudge,why=t.dataset.why||"";try{await db.collection("reminders").add({accountId:"",type:"Catch up",due:today(),time:"",assignee:n,note:"From "+(S.me||"admin")+": "+why,done:false,createdAt:nowISO(),createdBy:S.me,nudge:true});t.textContent="Nudged";t.disabled=true;toast(n+" will see this in My Work")}catch(err){toast(errText(err))}return}
+  if(t.dataset.open){S.open=t.dataset.open;S.composer=null;render();return}
+  if(t.dataset.unown){const a=S.accounts.get(S.open),n=t.dataset.unown;if(!a)return;try{await patchAccount(a.id,ownPatch(own(a).filter(x=>x!==n)));await logActivity({accountId:a.id,kind:"owner",text:`Removed ${n} as owner`});toast(n+" removed")}catch(err){}return}
+  if(t.dataset.comp){openComposer(t.dataset.comp,t.dataset.preset);return}
+  if(t.dataset.stage){S.f={...S.f,stage:t.dataset.stage,list:"",owner:"",q:""};saveF();location.hash="prospects";return}
+  if(t.dataset.goto){location.hash=t.dataset.goto;return}
+  if(t.dataset.sort){if(S.view==="mine")return;S.f.dir=S.f.sort===t.dataset.sort?-S.f.dir:1;S.f.sort=t.dataset.sort;saveF();$("#view").innerHTML="";render();return}
+  if(t.dataset.copy){const v=t.dataset.copy;try{await navigator.clipboard.writeText(v);toast("Copied")}catch(err){const r=document.createRange();r.selectNodeContents(t.parentNode);const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Selected. Press Ctrl+C to copy.")}return}
+  if(t.dataset.rm){const id=t.dataset.rm,u=S.users.find(x=>x.id===id);if(!u)return;if(t.dataset.confirm!=="1"){t.dataset.confirm="1";t.textContent="Confirm remove";setTimeout(()=>{if(t.isConnected){t.dataset.confirm="";t.textContent="Remove"}},4000);return}
+    try{await db.doc("users/"+id).update({active:false,removedAt:nowISO(),removedBy:S.me});await logActivity({accountId:"",kind:"employee",text:`Removed ${u.name}`,system:true});toast(u.name+" removed")}catch(err){toast(errText(err))}return}
+  if(t.dataset.resetpin){const n=t.dataset.resetpin;if(t.dataset.confirm!=="1"){t.dataset.confirm="1";t.textContent="Confirm reset";setTimeout(()=>{if(t.isConnected){t.dataset.confirm="";t.textContent="Reset PIN"}},4000);return}
+    try{const r=await window.crmApi("/api/admin",{action:"resetPin",name:n});if(r.error)throw new Error(r.error);toast(n+" will make a new PIN at next sign in")}catch(err){toast(err.message||"Reset failed")}return}
+  const act=t.dataset.act;
+  if(act==="close"){S.open=null;closeComposer();render()}
+  if(act==="cancel")closeComposer();
+  if(act==="new"){S.open="__new";render()}
+  if(act==="signout"){window.crmSignOut&&window.crmSignOut()}
+  if(act==="pin"){window.crmChangePin&&window.crmChangePin()}
+  if(act==="newperson"){const f=$("#personForm");f.hidden=false;$("#npEmail").focus()}
+  if(act==="cancelperson"){const f=$("#personForm");f.hidden=true;f.reset();$("#npMatch").textContent=""}
+  if(act==="quicklog"){if(!S.canWrite)return toast("You have view access only.");S.open="__log";render()}
+  if(act==="clear"){S.f={...S.f,q:"",list:"",stage:"",owner:""};saveF();$("#view").innerHTML="";render()}
+  if(act==="accept"){const a=S.accounts.get(S.open);try{await patchAccount(a.id,{handoff:{...a.handoff,accepted:true,acceptedAt:nowISO()}});await logActivity({accountId:a.id,kind:"accepted",text:S.me+" accepted the lead"});toast("Lead accepted")}catch(err){}}
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&S.open){if(S.composer)closeComposer();else{S.open=null;render()}}
+  if(e.key==="Enter"&&e.target.matches(".tr.row")){S.open=e.target.dataset.open;render()}
+});
+document.addEventListener("submit",e=>{e.preventDefault();
+  if(e.target.id==="composer")submitComposer();
+  else if(e.target.id==="newForm")addProspect();
+  else if(e.target.id==="quickForm")submitQuick();
+  else if(e.target.id==="personForm")submitPerson();
+  else if(e.target.id==="teamForm"){const n=$("#teamName").value.trim().replace(/\s+/g," ");if(!n)return;const id=n.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");const ex=S.users.find(u=>u.id===id);
+    if(ex&&ex.active!==false)return toast(n+" is already on the list.");
+    (ex?db.doc("users/"+id).update({active:true,name:n,restoredAt:nowISO(),restoredBy:S.me}):db.doc("users/"+id).set({name:n,admin:false,active:true,hasPin:false,createdAt:nowISO(),createdBy:S.me}))
+      .then(()=>logActivity({accountId:"",kind:"employee",text:`Added ${n}`,system:true})).then(()=>{$("#teamName").value="";toast(n+" added. They make a PIN the first time they sign in.")}).catch(err=>toast(errText(err)));}
+});
+document.addEventListener("change",async e=>{
+  const id=e.target.id;
+  if(id==="rOn"){const f=document.querySelector(".remfields");if(f)f.hidden=!e.target.checked;return}
+  if(id==="bAll"){S.boardAll=e.target.checked;render();return}
+  if(id==="bMine"){S.boardMine=e.target.checked;render();return}
+  if(id==="auWho"||id==="auKind"){S.au[id==="auWho"?"who":"kind"]=e.target.value;render();return}
+  if(e.target.dataset.admin){const id=e.target.dataset.admin,on=e.target.checked,u=S.users.find(x=>x.id===id);try{await db.doc("users/"+id).update({admin:on,adminChangedBy:S.me,adminChangedAt:nowISO()});await logActivity({accountId:"",kind:"employee",text:`${u?u.name:id} ${on?"made an admin":"is no longer an admin"}`,system:true});toast(on?(u?u.name:"")+" is now an admin":(u?u.name:"")+" is no longer an admin")}catch(err){e.target.checked=!on;toast(errText(err))}return}
+  if(id==="meSel"){S.me=e.target.value;ls.set("vcrm.me",S.me);render();return}
+  if(id==="fList"||id==="fStage"||id==="fOwner"){S.f[{fList:"list",fStage:"stage",fOwner:"owner"}[id]]=e.target.value;saveF();$("#view").innerHTML="";render();return}
+  if(e.target.dataset.dealstage){const did=e.target.dataset.dealstage,d=S.deals.find(x=>x.id===did),ns=e.target.value;if(!d)return;
+    try{await queue("deals/"+did,()=>db.doc("deals/"+did).update({stage:ns,updatedAt:nowISO()}));await logActivity({accountId:d.accountId,kind:"deal",text:`${d.name}: ${d.stage} to ${ns}`,system:true});toast("Deal set to "+ns)}catch(err){}return}
+  const a=S.accounts.get(S.open);if(!a)return;
+  if(id==="dStage"){const s=e.target.value;if(s==="Current client"&&a.type!=="client"){e.target.value=a.stage;openComposer("convert");return}
+    try{await patchAccount(a.id,{stage:s});await logActivity({accountId:a.id,kind:"stage",text:`${a.stage} to ${s}`});toast("Stage set to "+s);if(s==="Won"&&a.type!=="client")openComposer("convert")}catch(err){}}
+  if(id==="dOwnerAdd"){const o=e.target.value;if(!o)return;const next=[...own(a),o];try{await patchAccount(a.id,ownPatch(next));await logActivity({accountId:a.id,kind:"owner",text:`Added ${o} as owner`});toast(o+" added as owner")}catch(err){}return}
+  if(id==="dOwner"){const o=e.target.value;try{await patchAccount(a.id,{owner:o});await logActivity({accountId:a.id,kind:"owner",text:`${a.owner||"No owner"} to ${o||"No owner"}`});toast(o?"Owner set to "+o:"Owner cleared")}catch(err){}}
+});
+document.addEventListener("input",e=>{if(e.target.id==="q"){S.f.q=e.target.value;saveF();render()}if(e.target.id==="pq"){S.pq=e.target.value;render()}if(e.target.id==="gq")gsearch(e.target.value);if(e.target.id==="auQ"){S.au.q=e.target.value;render()}if(e.target.id==="npEmail")matchDomain()});
+function gsearch(raw){
+  const box=$("#gres"),q=raw.trim().toLowerCase(),digits=q.replace(/\D/g,"");
+  if(q.length<2){box.hidden=true;return}
+  const hit=s=>{s=String(s||"").toLowerCase();return s.includes(q)||(digits.length>=3&&s.replace(/\D/g,"").includes(digits))};
+  const cos=accts().filter(a=>hit(a.company)||hit(a.phone)||hit(a.address)||hit(a.contact)).slice(0,8);
+  const ppl=allPeople().filter(p=>hit(p.name)||hit(p.phone)||hit(p.email)).slice(0,8);
+  const dls=S.deals.filter(d=>hit(d.name)).slice(0,5);
+  box.innerHTML=(cos.length?`<div class="grp lbl">Companies</div>`+cos.map(a=>`<button data-open="${esc(a.id)}"><b>${esc(a.company)}</b> <span class="muted">· ${a.type==="client"?"Client":esc(a.stage)}</span></button>`).join(""):"")+
+    (ppl.length?`<div class="grp lbl">People</div>`+ppl.map(p=>`<button data-open="${esc(p.accountId)}"><b>${esc(p.name)}</b> <span class="muted">· ${esc(p.company)}${p.phone?" · "+esc(p.phone):""}</span></button>`).join(""):"")+
+    (dls.length?`<div class="grp lbl">Deals</div>`+dls.map(d=>{const a=S.accounts.get(d.accountId);return `<button data-open="${esc(d.accountId)}"><b>${esc(d.name)}</b> <span class="muted">· ${esc(a?a.company:"")} · ${money(annual(d))}/yr</span></button>`}).join(""):"")||
+    `<div class="grp muted" style="padding-bottom:10px">Nothing matches "${esc(raw)}".</div>`;
+  box.hidden=false;}
+document.addEventListener("click",e=>{if(!e.target.closest(".gsearch")){$("#gres").hidden=true}else if(e.target.closest("#gres [data-open]")){$("#gres").hidden=true;$("#gq").value=""}},true);
+function saveF(){ls.set("vcrm.f",JSON.stringify(S.f))}
+const lastName=n=>{const p=String(n).trim().split(/\s+/);return (p[p.length-1]+" "+p.slice(0,-1).join(" ")).toLowerCase()};
+const byLast=list=>[...list].sort((a,b)=>lastName(a).localeCompare(lastName(b)));
+async function saveTeam(list,admins){if(!db)return;list=byLast(list);admins=(admins||S.admins).filter(n=>list.includes(n));try{await queue("config/team",()=>db.doc("config/team").set({members:list,admins,updatedAt:nowISO()}));$("#teamName")&&($("#teamName").value="");toast("Team updated")}catch(e){}}
+
+/* ---------- auto grouping ---------- */
+function domainIndex(){const m=new Map();accts().forEach(a=>{const d=domainOf(a.website);if(d&&!GENERIC.includes(d))m.set(d,a);(a.people||[]).forEach(p=>{const e=String(p.email||"").split("@")[1];if(e&&!GENERIC.includes(e.toLowerCase())&&!m.has(e.toLowerCase()))m.set(e.toLowerCase(),a)})});return m}
+function matchDomain(){const em=$("#npEmail").value.trim().toLowerCase(),dom=em.split("@")[1]||"",out=$("#npMatch");
+  if(!dom||!dom.includes(".")){out.textContent="";return}
+  if(GENERIC.includes(dom)){out.textContent="Personal email address. Pick the company yourself.";return}
+  const idx=domainIndex(),root=dom.split(".").slice(-2).join(".");const a=idx.get(dom)||idx.get(root)||[...idx.entries()].find(([d])=>d.endsWith("."+root)||root.endsWith("."+d))?.[1];
+  if(a){$("#npCo").value=a.company;out.innerHTML=`Linked to <b>${esc(a.company)}</b> by email domain.`}else out.textContent="No company in the CRM uses "+dom+" yet. Pick or type the company.";}
+async function submitPerson(){
+  const v=id=>$("#"+id).value.trim();const co=v("npCo"),a=accts().find(x=>x.company.toLowerCase()===co.toLowerCase());
+  if(!v("npName"))return toast("Enter the contact's name.");if(!a)return toast("Pick a company that's in the CRM, or add the company first.");
+  const p={name:v("npName"),title:v("npTitle"),phone:v("npPhone"),email:v("npEmail").toLowerCase(),confidence:"Added in CRM",addedBy:S.me,addedAt:today()};
+  if(p.email){const dup=allPeople().find(x=>(x.email||"").toLowerCase()===p.email);if(dup)return toast(`${p.email} is already on file for ${dup.name} at ${dup.company}.`)}
+  if((a.people||[]).some(x=>(x.name||"").toLowerCase()===p.name.toLowerCase()))return toast(p.name+" is already listed at "+a.company+".");
+  Object.keys(p).forEach(k=>{if(!p[k])delete p[k]});
+  try{await patchAccount(a.id,{people:[...(a.people||[]),p]});await logActivity({accountId:a.id,kind:"contact",text:p.name+(p.title?", "+p.title:"")});toast(p.name+" added to "+a.company);$("#personForm").reset();$("#personForm").hidden=true;$("#npMatch").textContent=""}catch(e){}}
+
+/* ---------- board ---------- */
+function boardHTML(){
+  const cols=STAGES.filter(s=>s!=="Current client"&&(S.boardAll||!["Parked","Lost"].includes(s)));
+  let p=accts().filter(a=>a.type!=="client");if(S.boardMine)p=p.filter(a=>owns(a,S.me));
+  const dealSum=id=>S.deals.filter(d=>d.accountId===id&&!["Won","Lost"].includes(d.stage)).reduce((s,d)=>s+annual(d),0);
+  return `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><h2>Board</h2><label class="chk"><input type="checkbox" id="bMine" ${S.boardMine?"checked":""} ${S.me?"":"disabled"}> Only mine</label><label class="chk"><input type="checkbox" id="bAll" ${S.boardAll?"checked":""}> Show Parked and Lost</label><span class="muted" style="font-size:13px">Drag a card to change its stage.</span></div>
+  <div class="board">${cols.map(s=>{const c=p.filter(a=>a.stage===s).sort((x,y)=>dealSum(y.id)-dealSum(x.id)||listRank(x.list)-listRank(y.list));const tot=c.reduce((n,a)=>n+dealSum(a.id),0);
+    return `<div class="col" data-col="${esc(s)}"><div class="colhead"><span class="pill ${stCls(s)}">${esc(s)}</span><span class="mono muted">${c.length}${tot?" · "+money(tot):""}</span></div>
+    <div class="cards">${c.slice(0,60).map(a=>{const ds=dealSum(a.id),rs=remsFor(a.id);return `<div class="card" draggable="${S.canWrite}" data-card="${esc(a.id)}" data-open="${esc(a.id)}" tabindex="0"><b>${esc(a.company)}</b><span class="sub">${own(a).length?esc(ownTxt(a)):'<span class="unassigned">No owner</span>'}</span>${ds||rs.length?`<span class="cardmeta">${ds?`<span class="mono">${money(ds)}/yr</span>`:""}${rs.length?`<span class="mono ${rs[0].due<today()?"due-over":""}">${esc(rs[0].type)} ${fmtDate(rs[0].due)}</span>`:""}</span>`:""}</div>`}).join("")}${c.length>60?`<div class="empty">${c.length-60} more in Prospects</div>`:""}</div></div>`}).join("")}</div>`;}
+document.addEventListener("dragstart",e=>{const c=e.target.closest&&e.target.closest("[data-card]");if(!c)return;e.dataTransfer.setData("text/plain",c.dataset.card);e.dataTransfer.effectAllowed="move";c.classList.add("dragging")});
+document.addEventListener("dragend",e=>{document.querySelectorAll(".dragging,.col.over").forEach(x=>x.classList.remove("dragging","over"))});
+document.addEventListener("dragover",e=>{const col=e.target.closest&&e.target.closest("[data-col]");if(!col)return;e.preventDefault();document.querySelectorAll(".col.over").forEach(x=>x!==col&&x.classList.remove("over"));col.classList.add("over")});
+document.addEventListener("drop",async e=>{const col=e.target.closest&&e.target.closest("[data-col]");if(!col)return;e.preventDefault();col.classList.remove("over");
+  const id=e.dataTransfer.getData("text/plain"),a=S.accounts.get(id),s=col.dataset.col;if(!a||a.stage===s)return;
+  try{await patchAccount(a.id,{stage:s});await logActivity({accountId:a.id,kind:"stage",text:`${a.stage} to ${s}`});toast(`${a.company} moved to ${s}`+(s==="Won"?". Open it to convert to client.":""))}catch(err){}});
+
+/* ---------- admin: pace + audit ---------- */
+function adminNav(){return `<nav class="subnav">${ADMIN_VIEWS.map(([k,l])=>`<a href="#${k}" ${S.view===k?'aria-current="page"':""}>${l}</a>`).join("")}</nav>`}
+function paceFor(n){
+  const now=Date.now(),t=today(),acts=S.activity.filter(x=>x.by===n),touch=acts.filter(x=>TOUCHK.includes(x.kind));
+  const inDays=(x,d)=>now-new Date(x.at)<d*864e5;
+  const owned=accts().filter(a=>owns(a,n));
+  const r={n,owned:owned.length,clients:owned.filter(a=>a.type==="client").length,
+    t7:touch.filter(x=>inDays(x,7)).length,t30:touch.filter(x=>inDays(x,30)).length,v30:touch.filter(x=>x.kind==="visit"&&inDays(x,30)).length,
+    last:acts[0]?acts[0].at:"",
+    overRem:openRems().filter(x=>x.assignee===n&&x.due<t).length,
+    overNext:owned.filter(a=>a.nextDate&&a.nextDate<t).length,
+    stale:needsAttention().filter(x=>owns(x.a,n)).length,
+    waitHO:accts().filter(a=>a.handoff&&!a.handoff.accepted&&a.handoff.to===n&&daysSince(a.handoff.at)>=2).length,
+    openVal:S.deals.filter(d=>d.owner===n&&!["Won","Lost"].includes(d.stage)).reduce((s,d)=>s+annual(d),0),
+    weeks:[5,4,3,2,1,0].map(w=>touch.filter(x=>{const age=(now-new Date(x.at))/864e5;return age>=w*7&&age<(w+1)*7}).length)};
+  const why=[];
+  if(r.overRem)why.push(`${r.overRem} overdue follow-up${r.overRem>1?"s":""}`);
+  if(r.overNext)why.push(`${r.overNext} overdue next step${r.overNext>1?"s":""}`);
+  if(r.stale)why.push(`${r.stale} account${r.stale>1?"s":""} untouched 30+ days`);
+  if(r.waitHO)why.push(`${r.waitHO} handoff${r.waitHO>1?"s":""} not accepted`);
+  if(r.owned&&!r.t7)why.push("no calls, emails, visits or notes this week");
+  r.why=why;
+  r.status=!r.owned&&!r.t30?"idle":(r.overRem+r.overNext>=3||r.stale>=5||r.waitHO>0||(r.owned&&!r.t7&&(!r.last||daysSince(r.last)>=7)))?"behind":why.length?"watch":"pace";
+  return r;}
+function spark(w){const m=Math.max(1,...w);return `<svg class="spark" viewBox="0 0 96 30" width="96" height="30" role="img" aria-label="Touches per week, last 6 weeks: ${w.join(", ")}">${w.map((v,i)=>`<rect x="${i*16+1}" y="${28-Math.round(v/m*24)}" width="12" height="${Math.max(1,Math.round(v/m*24))}" rx="2" class="${i===5?"now":""}"></rect>`).join("")}</svg>`}
+function paceHTML(){
+  const rows=S.team.map(paceFor),order={behind:0,watch:1,pace:2,idle:3};rows.sort((a,b)=>order[a.status]-order[b.status]||b.why.length-a.why.length);
+  const all=S.activity.filter(x=>TOUCHK.includes(x.kind)),now=Date.now();
+  const wk=all.filter(x=>now-new Date(x.at)<7*864e5);
+  const lbl={behind:"Behind",watch:"Watch",pace:"On pace",idle:"No accounts yet"};
+  return `<h2>Team pace</h2><p class="muted" style="max-width:70ch">Built from what each person logs in the CRM. Behind means three or more overdue items, five or more accounts untouched for 30 days, a handoff left waiting two days, or nothing logged for a week while holding accounts. Nudge sends them a catch up item in My Work with the reasons.</p>
+  <div class="stagebar" style="margin-top:14px">
+    <div class="stat"><span class="lbl">Touches this week</span><b>${wk.length}</b></div>
+    <div class="stat"><span class="lbl">Site visits this week</span><b>${wk.filter(x=>x.kind==="visit").length}</b></div>
+    <div class="stat"><span class="lbl">Overdue follow-ups</span><b class="${openRems().some(r=>r.due<today())?"due-over":""}">${openRems().filter(r=>r.due<today()).length}</b></div>
+    <div class="stat"><span class="lbl">Untouched 30+ days</span><b>${needsAttention().length}</b></div>
+    <div class="stat"><span class="lbl">People behind</span><b class="${rows.some(r=>r.status==="behind")?"due-over":""}">${rows.filter(r=>r.status==="behind").length}</b></div>
+  </div>
+  <div class="pacegrid">${rows.map(r=>`<div class="pacecard st-${r.status}"><div class="pc-head"><b>${esc(r.n)}</b><span class="pstat ps-${r.status}">${lbl[r.status]}</span></div>
+    ${r.why.length?`<ul class="why">${r.why.map(w=>`<li>${esc(w)}</li>`).join("")}</ul>`:`<p class="muted" style="margin:0;font-size:13px">${r.status==="idle"?"No accounts assigned.":"Nothing overdue."}</p>`}
+    <div class="pc-stats"><div><b>${r.t7}</b><span>this week</span></div><div><b>${r.t30}</b><span>30 days</span></div><div><b>${r.v30}</b><span>visits 30d</span></div><div><b>${r.owned}</b><span>accounts</span></div></div>
+    <div class="pc-foot">${spark(r.weeks)}<span class="muted" style="font-size:12px">${r.last?"Last active "+fmtDate(r.last):"No activity yet"}${r.openVal?" · "+money(r.openVal)+"/yr open":""}</span>
+    ${r.status==="behind"||r.status==="watch"?`<button class="btn" data-nudge="${esc(r.n)}" data-why="${esc(r.why.join("; "))}" ${S.canWrite?"":"disabled"}>Nudge</button>`:""}</div></div>`).join("")}</div>`;}
+function auditShell(){
+  const kinds=[...new Set(S.activity.map(x=>x.kind))].sort();
+  return `<h2>Audit log</h2><p class="muted">Every change and touch, newest first. Showing the latest ${S.activity.length.toLocaleString()} entries.</p>
+  <div class="toolbar"><input type="search" id="auQ" placeholder="Search company or details" value="${esc(S.au.q)}">
+  <select id="auWho" aria-label="Person"><option value="">Everyone</option>${S.team.map(n=>`<option ${n===S.au.who?"selected":""}>${esc(n)}</option>`).join("")}</select>
+  <select id="auKind" aria-label="Type"><option value="">All types</option>${kinds.map(k=>`<option value="${esc(k)}" ${k===S.au.kind?"selected":""}>${esc(kindLabel(k))}</option>`).join("")}</select></div>
+  <div class="table"><div class="tr head arow"><span class="lbl">When</span><span class="lbl">Who</span><span class="lbl">Type</span><span class="lbl">Account</span><span class="lbl">Details</span></div><div id="auBody"></div></div>`;}
+function auditRows(){
+  const q=S.au.q.trim().toLowerCase();
+  const r=S.activity.filter(x=>(!S.au.who||x.by===S.au.who)&&(!S.au.kind||x.kind===S.au.kind)&&(!q||[(S.accounts.get(x.accountId)||{}).company,x.text].join(" ").toLowerCase().includes(q))).slice(0,500);
+  return r.map(x=>{const a=S.accounts.get(x.accountId),d=new Date(x.at);return `<div class="tr arow ${a?"row":""}" ${a?`data-open="${esc(a.id)}"`:""}><span class="mono">${isNaN(d)?"":d.toLocaleDateString("en-US",{month:"short",day:"numeric"})+" "+d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}</span><span class="ell">${esc(x.by||"")}</span><span>${esc(kindLabel(x.kind))}${x.system?' <span class="muted">(auto)</span>':""}</span><span class="ell">${esc(a?a.company:"")}</span><span class="aud-txt">${esc(x.text||"")}</span></div>`}).join("")||'<div class="tr"><span class="empty">No entries match.</span></div>';}
+
+function matchLogin(){
+  const nm=(S.myName||"").trim().toLowerCase();if(!nm||!S.team.length)return;
+  const toks=x=>x.toLowerCase().replace(/[^a-z\s-]/g,"").split(/\s+/).filter(Boolean);
+  const mt=toks(nm);
+  const hit=S.team.find(n=>n.toLowerCase()===nm)||S.team.find(n=>{const t=toks(n);return t[0]===mt[0]&&t[t.length-1]===mt[mt.length-1]})||S.team.find(n=>{const t=toks(n);return t[t.length-1]===mt[mt.length-1]&&mt.length>1});
+  if(hit){S.loginName=hit;if(S.me!==hit){S.me=hit;ls.set("vcrm.me",hit)}}}
+function route(){const h=location.hash.slice(1);S.view=VIEWS.some(v=>v[0]===h)||isAdminView(h)?h:"home";$("#view").innerHTML="";render()}
+window.addEventListener("hashchange",route);
+
+/* ---------- boot (called by the sign in module once Firebase says who you are) ---------- */
+route();
+window.startApp=function(adapter,me){
+  db=adapter;uid=me.uid;S.me=me.name;S.canWrite=true;
+  const slow=setTimeout(()=>{if(!S.loaded)notice("The CRM can't be reached yet. Check your connection; it will load on its own once it can.")},10000);
+  const fail=err=>{clearTimeout(slow);S.loaded=true;notice(err&&err.code==="permission-denied"?"Your account can't read the CRM. Sign out and back in, or ask an admin.":"The CRM stopped updating. Reload the page to reconnect.");render()};
+  db.collection("accounts").onSnapshot(snap=>{
+    S.accounts=new Map(snap.docs.map(d=>[d.id,{id:d.id,...d.data()}]));
+    if(!snap.metadata.fromCache){S.loaded=true;clearTimeout(slow);notice("")}
+    render();
+  },fail);
+  db.collection("activity").orderBy("at","desc").limit(1000).onSnapshot(snap=>{S.activity=snap.docs.map(d=>({id:d.id,...d.data()}));render()},fail);
+  db.collection("reminders").onSnapshot(snap=>{S.reminders=snap.docs.map(d=>({id:d.id,...d.data()}));render()},fail);
+  db.collection("deals").onSnapshot(snap=>{S.deals=snap.docs.map(d=>({id:d.id,...d.data()}));render()},fail);
+  db.collection("users").onSnapshot(snap=>{S.users=snap.docs.map(d=>({id:d.id,...d.data()}));const act=S.users.filter(u=>u.active!==false);
+    S.team=byLast(act.map(u=>u.name));S.admins=act.filter(u=>u.admin).map(u=>u.name);S.teamLoaded=true;render()},fail);
+};
+</script>
+
+<div id="login" class="login" role="dialog" aria-label="Sign in">
+  <form class="login-card" id="loginForm" autocomplete="off">
+    <img src="/vanguard-v.png" alt="Vanguard" class="login-logo">
+    <h1 class="login-title">Vanguard CRM</h1>
+    <p class="muted login-sub" id="lgSub">Sign in with your name and PIN.</p>
+    <label class="lg-field" id="lgNameRow"><span class="lbl">Your name</span><select id="lgName" required><option value="">Loading names</option></select></label>
+    <label class="lg-field" id="lgCurRow" hidden><span class="lbl">Current PIN</span><input id="lgCur" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password"></label>
+    <label class="lg-field"><span class="lbl" id="lgPinLbl">PIN</span><input id="lgPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" required></label>
+    <label class="lg-field" id="lgConfRow" hidden><span class="lbl">Type the new PIN again</span><input id="lgConf" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password"></label>
+    <p class="lg-err" id="lgErr" role="alert"></p>
+    <button class="btn pri lg-go" id="lgGo">Sign in</button>
+    <button type="button" class="btn ghost" id="lgCancel" hidden>Cancel</button>
+    <p class="muted lg-foot">Forgot your PIN? Ask an admin to reset it.</p>
+  </form>
+</div>
+<style>
+.login{position:fixed;inset:0;z-index:60;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px));overflow-y:auto}
+.login-card{width:min(380px,100%);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px 24px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}
+.login-logo{width:72px;height:auto;background:#FFFFFF;border-radius:10px;padding:6px 8px;align-self:center}
+.login-title{text-align:center;font-size:26px;text-transform:uppercase;letter-spacing:.08em}
+.login-sub{text-align:center;margin:-6px 0 4px}
+.lg-field{display:flex;flex-direction:column;gap:5px}
+.lg-field select,.lg-field input{font-size:18px;padding:10px 12px}
+.lg-field input{letter-spacing:.4em;font-family:var(--f-mono)}
+.lg-err{color:var(--bad);font-weight:700;min-height:1.2em;margin:0}
+.lg-go{justify-content:center;padding:12px;font-size:16px}
+.lg-foot{text-align:center;font-size:13px;margin:0}
+</style>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,signInWithCustomToken,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,collection,doc,onSnapshot,query,orderBy,limit,addDoc,setDoc,updateDoc,deleteDoc,getDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const $=s=>document.querySelector(s);
+const L={el:$("#login"),name:$("#lgName"),pin:$("#lgPin"),conf:$("#lgConf"),cur:$("#lgCur"),err:$("#lgErr"),go:$("#lgGo"),sub:$("#lgSub"),cancel:$("#lgCancel")};
+let people=[],mode="signin",started=false,auth,fs;
+
+async function post(path,body,withAuth){
+  const h={"content-type":"application/json"};
+  if(withAuth&&auth.currentUser)h.authorization="Bearer "+await auth.currentUser.getIdToken();
+  const r=await fetch(path,{method:"POST",headers:h,body:JSON.stringify(body)});
+  let j={};try{j=await r.json()}catch(e){}
+  if(!r.ok&&!j.error)j.error="Something went wrong ("+r.status+").";
+  return j;}
+window.crmApi=(path,body)=>post(path,body,true);
+
+function setMode(m){
+  mode=m;L.err.textContent="";L.pin.value="";L.conf.value="";L.cur.value="";
+  $("#lgNameRow").hidden=m==="change";$("#lgCurRow").hidden=m!=="change";$("#lgConfRow").hidden=m==="signin";
+  $("#lgPinLbl").textContent=m==="signin"?"PIN":"New PIN (4 to 6 digits)";
+  L.go.textContent=m==="signin"?"Sign in":m==="create"?"Create PIN and sign in":"Change PIN";
+  L.sub.textContent=m==="signin"?"Sign in with your name and PIN.":m==="create"?"First time here. Make a 4 to 6 digit PIN you'll remember.":"Change your PIN.";
+  L.cancel.hidden=m!=="change";
+  L.pin.autocomplete=m==="signin"?"current-password":"new-password";}
+function showLogin(m){L.el.hidden=false;setMode(m||"signin");setTimeout(()=>(m==="change"?L.cur:(L.name.value?L.pin:L.name)).focus(),30)}
+
+async function loadNames(){
+  try{const r=await fetch("/api/names");const j=await r.json();if(j.error)throw new Error(j.error);people=j.people;
+    let last="";try{last=localStorage.getItem("vcrm.lastName")||""}catch(e){}
+    L.name.innerHTML='<option value="">Pick your name</option>'+people.map(p=>`<option ${p.name===last?"selected":""}></option>`).join("");
+    [...L.name.options].slice(1).forEach((o,i)=>{o.value=people[i].name;o.textContent=people[i].name});
+    pickName();}
+  catch(e){L.err.textContent=e.message||"Can't reach the sign in service."}}
+function pickName(){const p=people.find(x=>x.name===L.name.value);if(mode!=="change")setMode(p&&!p.hasPin?"create":"signin")}
+L.name.addEventListener("change",()=>{pickName();L.pin.focus()});
+L.cancel.addEventListener("click",()=>{L.el.hidden=true});
+
+$("#loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();L.err.textContent="";const pin=L.pin.value.trim();
+  if(!/^\d{4,6}$/.test(pin))return L.err.textContent=mode==="signin"?"Enter your 4 to 6 digit PIN.":"Your PIN must be 4 to 6 digits.";
+  if(mode!=="signin"&&pin!==L.conf.value.trim())return L.err.textContent="The two PINs don't match.";
+  L.go.disabled=true;
+  try{
+    let j;
+    if(mode==="change"){const me=await auth.currentUser.getIdTokenResult();j=await post("/api/set-pin",{name:me.claims.crmName,pin,currentPin:L.cur.value.trim()})}
+    else{const name=L.name.value;if(!name){L.go.disabled=false;return L.err.textContent="Pick your name."}
+      try{localStorage.setItem("vcrm.lastName",name)}catch(e){}
+      j=await post(mode==="create"?"/api/set-pin":"/api/login",{name,pin});
+      if(j.needsPin){setMode("create");L.go.disabled=false;return L.err.textContent="You haven't made a PIN yet. Make one now."}}
+    if(j.error){L.err.textContent=j.error;L.go.disabled=false;return}
+    await signInWithCustomToken(auth,j.token);
+    if(mode==="change"){L.el.hidden=true;window.toast&&toast("PIN changed")}
+  }catch(err){L.err.textContent="Sign in failed. Check your connection and try again."}
+  L.go.disabled=false;});
+
+window.crmSignOut=async()=>{await signOut(auth);location.reload()};
+window.crmChangePin=()=>showLogin("change");
+
+/* Firestore adapter: same calls the app already uses, stored under crm_ collections */
+const C=n=>"crm_"+n;
+const wrapDoc=s=>({id:s.id,exists:s.exists(),data:()=>s.data(),metadata:s.metadata});
+const wrapQ=s=>({docs:s.docs.map(wrapDoc),size:s.size,empty:s.empty,metadata:s.metadata});
+function mkQ(ref,cons){return{
+  orderBy:(f,d)=>mkQ(ref,[...cons,orderBy(f,d)]),limit:n=>mkQ(ref,[...cons,limit(n)]),
+  onSnapshot:(next,err)=>onSnapshot(cons.length?query(ref,...cons):ref,s=>next(wrapQ(s)),err)}}
+function dref(r){return{id:r.id,path:r.path,update:d=>updateDoc(r,d),set:d=>setDoc(r,d),delete:()=>deleteDoc(r),
+  get:async()=>wrapDoc(await getDoc(r)),onSnapshot:(n,e)=>onSnapshot(r,s=>n(wrapDoc(s)),e)}}
+function adapter(){return{
+  collection:name=>{const [c,...rest]=name.split("/");const ref=collection(fs,C(c),...rest);return{...mkQ(ref,[]),doc:id=>dref(id?doc(ref,id):doc(ref)),add:d=>addDoc(ref,d)}},
+  doc:path=>{const [c,...rest]=path.split("/");return dref(doc(fs,C(c),...rest))}}}
+
+try{
+  const r=await fetch("/api/config");const cfg=await r.json();if(cfg.error)throw new Error(cfg.error);
+  const app=initializeApp(cfg,"vanguard-crm");auth=getAuth(app);fs=getFirestore(app);
+  onAuthStateChanged(auth,async u=>{
+    if(!u){if(started){location.reload();return}showLogin("signin");loadNames();return}
+    const t=await u.getIdTokenResult();
+    if(!t.claims.crm){await signOut(auth);return}
+    L.el.hidden=true;
+    if(!started){started=true;window.startApp(adapter(),{uid:u.uid,name:t.claims.crmName})}
+  });
+}catch(e){showLogin("signin");L.err.textContent=e.message||"The CRM isn't configured yet.";L.go.disabled=true}
+</script>
+
+</body>
+</html>
