@@ -249,6 +249,11 @@ h3{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute
 .tr.arow{grid-template-columns:120px 140px 130px minmax(0,1fr) minmax(0,2fr)}
 .aud-txt{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
 @media (max-width:820px){.tr.arow{grid-template-columns:1fr 1fr}.aud-txt{grid-column:1/-1}}
+.rolock{margin:0;font-size:13px;background:var(--warn-soft);color:var(--warn);padding:8px 10px;border-radius:8px}
+a.btn{text-decoration:none;color:inherit}
+.emplist>div{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1.2fr) 64px auto auto;gap:10px;align-items:center}
+.emplist>div>span:first-child{flex:none}
+@media (max-width:640px){.emplist>div{grid-template-columns:1fr auto}}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:30;font-weight:700;max-width:90vw}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
 </style>
@@ -279,7 +284,7 @@ const ADMIN_VIEWS=[["pace","Team pace"],["audit","Audit log"],["employees","Empl
 const TOUCHK=["call","email","meeting","visit","note"];
 const GENERIC=["gmail.com","yahoo.com","outlook.com","hotmail.com","icloud.com","aol.com","comcast.net","att.net","live.com","msn.com","me.com"];
 const DEAL_STAGES=["Open","Proposal sent","Negotiating","Won","Lost"];
-const S={users:[],reminders:[],boardAll:false,boardMine:false,au:{who:"",kind:"",q:""},admins:[],loginName:"",isOwner:false,levelAdmin:false,accounts:new Map(),activity:[],deals:[],team:[],me:"",view:"home",open:null,composer:null,loaded:false,canWrite:true,
+const S={excel:{},users:[],reminders:[],boardAll:false,boardMine:false,au:{who:"",kind:"",q:""},admins:[],loginName:"",isOwner:false,levelAdmin:false,accounts:new Map(),activity:[],deals:[],team:[],me:"",view:"home",open:null,composer:null,loaded:false,canWrite:true,
   f:{q:"",list:"",stage:"",owner:"",sort:"order",dir:1}};
 let db=null,user=null,uid=null;
 const $=s=>document.querySelector(s);
@@ -314,6 +319,8 @@ const accts=()=>[...S.accounts.values()];
 const own=a=>Array.isArray(a.owners)?a.owners:(a.owner?[a.owner]:[]);
 const owns=(a,n)=>!!n&&own(a).includes(n);
 const ownTxt=a=>own(a).join(", ");
+const canEdit=a=>!!a&&(isAdmin()||!own(a).length||owns(a,S.me));
+const canCloseRem=r=>isAdmin()||r.assignee===S.me||r.createdBy===S.me;
 const ownPatch=list=>({owners:list,owner:list[0]||"",assignedAt:nowISO()});
 const money=n=>"$"+Math.round(Number(n)||0).toLocaleString("en-US");
 const annual=d=>(Number(d.value)||0)*(d.term==="monthly"?12:1);
@@ -337,7 +344,7 @@ function remRow(r,showCo){const a=S.accounts.get(r.accountId),t=today(),over=r.d
   return `<div class="rem ${over?"over":""}"><div class="rem-main">${showCo&&a?`<button class="linkish" data-open="${esc(a.id)}">${esc(a.company)}</button>`:""}<span class="rem-type">${esc(r.type)}</span>
     <span class="mono ${over?"due-over":""}">${over?"Overdue · ":dueToday?"Today · ":""}${fmtDate(r.due)}${r.time?" "+esc(r.time):""}</span>${r.assignee&&r.assignee!==S.me?`<span class="muted">for ${esc(r.assignee)}</span>`:""}
     ${r.note?`<div class="sub">${esc(r.note)}</div>`:""}</div>
-    <div class="rem-act"><a class="btn ghost" href="${esc(gcal(r))}" target="_blank" rel="noopener">Add to calendar</a><button class="btn" data-done="${esc(r.id)}" ${S.canWrite?"":"disabled"}>Done</button></div></div>`;}
+    <div class="rem-act"><a class="btn ghost" href="${esc(gcal(r))}" target="_blank" rel="noopener">Add to calendar</a>${canCloseRem(r)?`<button class="btn" data-done="${esc(r.id)}">Done</button>`:""}</div></div>`;}
 function remFields(on,a){const d=new Date(Date.now()+3*864e5).toLocaleDateString("en-CA");
   return `<fieldset class="remset"><legend><label class="chk"><input type="checkbox" id="rOn" ${on?"checked":""}> Set a follow-up reminder</label></legend>
     <div class="remfields" ${on?"":"hidden"}><div class="row2"><label><span class="lbl">Follow-up</span><select id="rType">${REM_TYPES.filter(x=>x!=="Catch up").map(x=>`<option>${x}</option>`).join("")}</select></label>
@@ -474,13 +481,21 @@ function listRows(view){
   </div>`).join("");}
 
 function isAdmin(){return !!S.me&&S.admins.includes(S.me)}
+function excelPanel(){const x=S.excel||{};
+  const st=x.status==="ok"?`<span class="pstat ps-pace">Up to date</span>`:x.status==="error"?`<span class="pstat ps-behind">Problem</span>`:`<span class="pstat ps-idle">Not set up yet</span>`;
+  return `<section class="panel" style="max-width:760px;margin-top:22px"><div class="sechead"><h3>Live Excel workbook</h3>${st}</div>
+    <p class="muted" style="margin:0 0 10px;font-size:13px">The CRM rebuilds the shared prospect workbook in OneDrive or SharePoint every 5 minutes when something changed. Everyone views it there. Edits typed into the workbook are replaced, so changes belong in the CRM.</p>
+    ${x.syncedAt?`<p style="margin:0 0 6px">Last updated <b>${new Date(x.syncedAt).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"})}</b>${x.by&&x.by!=="schedule"?" by "+esc(x.by):""}${x.prospects!=null?` · ${x.prospects} prospects, ${x.clients} client${x.clients===1?"":"s"}`:""}</p>`:""}
+    ${x.status==="error"?`<p class="rolock" style="margin:0 0 8px">${esc(x.error||"Unknown problem")}</p>`:""}
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${x.webUrl?`<a class="btn" href="${esc(x.webUrl)}" target="_blank" rel="noopener">Open workbook</a>`:""}<button class="btn pri" data-act="syncxl">Update Excel now</button></div></section>`;}
 function employeesHTML(){
   return `<h2>Employees</h2><p class="muted" style="max-width:66ch">Everyone here can sign in with their name and PIN, and appears in the owner and handoff menus. Turn on Admin next to a name to give that person the Admin pages.</p>
   <form id="teamForm" class="toolbar" style="max-width:760px"><input type="text" id="teamName" placeholder="Full name" style="flex:1"><button class="btn pri">Add employee</button></form>
-  <div class="teamlist" style="max-width:760px">${S.users.filter(u=>u.active!==false).sort((a,b)=>lastName(a.name).localeCompare(lastName(b.name))).map(u=>{const n=u.name,c=accts().filter(a=>owns(a,n)).length,adm=!!u.admin,self=n===S.me;
+  <div class="teamlist emplist" style="max-width:760px">${S.users.filter(u=>u.active!==false).sort((a,b)=>lastName(a.name).localeCompare(lastName(b.name))).map(u=>{const n=u.name,c=accts().filter(a=>owns(a,n)).length,adm=!!u.admin,self=n===S.me;
     return `<div><span class="empname"><b>${esc(n)}</b><label class="switch" title="${adm?"Admin":"Not admin"}"><input type="checkbox" data-admin="${esc(u.id)}" ${adm?"checked":""} ${self?"disabled":""}><span class="sw"></span><span class="swl">Admin</span></label>${self?'<span class="muted">(you)</span>':""}</span>
     <span class="muted" style="font-size:13px">${u.hasPin?"PIN set":"No PIN yet"}${u.lastLogin?" · last in "+fmtDate(u.lastLogin):""}</span><span class="muted mono">${c} acct${c===1?"":"s"}</span>
-    ${u.hasPin?`<button class="btn ghost" data-resetpin="${esc(n)}">Reset PIN</button>`:""}${self?"":`<button class="btn ghost" data-rm="${esc(u.id)}">Remove</button>`}</div>`}).join("")||'<div><span class="muted">No employees yet.</span></div>'}</div>
+    ${u.hasPin?`<button class="btn ghost" data-resetpin="${esc(n)}">Reset PIN</button>`:"<span></span>"}${self?"<span></span>":`<button class="btn ghost" data-rm="${esc(u.id)}">Remove</button>`}</div>`}).join("")||'<div><span class="muted">No employees yet.</span></div>'}</div>
+  ${excelPanel()}
   <p class="muted" style="max-width:66ch;margin-top:14px;font-size:13px">Reset PIN signs that person out everywhere and lets them make a new PIN at their next sign in. Removing someone stops them signing in but keeps everything they logged.</p>`;}
 /* ---------- drawer ---------- */
 function kindLabel(k){return({employee:"Employee change",pinreset:"PIN reset",reminder:"Reminder set",followup:"Follow-up done",call:"Call",email:"Email",meeting:"Meeting",deal:"Deal",contact:"Contact added",visit:"Site visit",note:"Note",handoff:"Handoff",converted:"Became client",reverted:"Back to prospect",stage:"Stage change",owner:"Owner change",research:"Research",created:"Added",next:"Next step",accepted:"Handoff accepted",edit:"Details edited"})[k]||k}
@@ -494,7 +509,7 @@ function renderDrawer(){
     return}
   if(S.open==="__log"){
     if(!host.querySelector("#quickForm")){host.dataset.id="";
-      const opts=accts().sort((x,y)=>{const mx=owns(x,S.me)?0:1,my=owns(y,S.me)?0:1;return mx-my||String(x.company).localeCompare(y.company)});
+      const opts=accts().filter(canEdit).sort((x,y)=>{const mx=owns(x,S.me)?0:1,my=owns(y,S.me)?0:1;return mx-my||String(x.company).localeCompare(y.company)});
       host.innerHTML=`<div class="scrim" data-act="close"></div><aside class="drawer" role="dialog" aria-label="Quick log"><div class="d-head"><div class="d-top"><h2>Quick log</h2><button class="btn ghost" data-act="close">Close</button></div></div><div class="d-scroll">
       <form class="composer" id="quickForm" style="border-width:1px">
         <label><span class="lbl">Company</span><input type="text" id="qCo" list="qCoList" placeholder="Start typing a company" required autocomplete="off"><datalist id="qCoList">${opts.map(a=>`<option value="${esc(a.company)}">`).join("")}</datalist></label>
@@ -514,11 +529,11 @@ function renderDrawer(){
   }
   const head=$("#dHead");
   if(!head.contains(document.activeElement)){
-    const dis=S.canWrite?"":"disabled";
+    const ce=canEdit(a),dis=ce?"":"disabled";
     head.innerHTML=`<div class="d-top"><h2>${esc(a.company)}</h2><span class="pill type-${a.type}">${a.type==="client"?"Client":"Prospect"}</span><button class="btn ghost" data-act="close" aria-label="Close">Close</button></div>
     <div class="d-meta">
       <label for="dStage"><span class="lbl">Stage</span><select id="dStage" ${dis}>${STAGES.map(s=>`<option ${s===a.stage?"selected":""}>${s}</option>`).join("")}</select></label>
-      <div class="ownbox"><span class="lbl">Owners</span><div class="chips">${own(a).map(n=>`<span class="chip">${esc(n)}${S.canWrite?`<button type="button" data-unown="${esc(n)}" aria-label="Remove ${esc(n)}">×</button>`:""}</span>`).join("")||'<span class="unassigned">No owner</span>'}${S.canWrite&&S.team.some(n=>!owns(a,n))?`<select id="dOwnerAdd" aria-label="Add owner"><option value="">+ Add owner</option>${S.team.filter(n=>!owns(a,n)).map(n=>`<option>${esc(n)}</option>`).join("")}</select>`:""}</div></div>
+      <div class="ownbox"><span class="lbl">Owners</span><div class="chips">${own(a).map(n=>`<span class="chip">${esc(n)}${ce?`<button type="button" data-unown="${esc(n)}" aria-label="Remove ${esc(n)}">×</button>`:""}</span>`).join("")||'<span class="unassigned">No owner</span>'}${ce&&S.team.some(n=>!owns(a,n))?`<select id="dOwnerAdd" aria-label="Add owner"><option value="">+ Add owner</option>${S.team.filter(n=>!owns(a,n)).map(n=>`<option>${esc(n)}</option>`).join("")}</select>`:""}</div></div>
       ${a.lastVisit?`<div><span class="lbl">Last visit</span><div class="mono">${fmtDate(a.lastVisit)}</div></div>`:""}
       ${a.type==="client"&&a.clientSince?`<div><span class="lbl">Client since</span><div class="mono">${fmtDate(a.clientSince)}</div></div>`:""}
     </div>
@@ -532,7 +547,8 @@ function renderDrawer(){
       <button class="btn" data-comp="handoff" ${dis}>Hand off</button>
       ${a.type==="client"?`<button class="btn" data-comp="revert" ${dis}>Move back to prospect</button>`:`<button class="btn ok" data-comp="convert" ${dis}>Convert to client</button>`}
       <button class="btn ghost" data-comp="edit" ${dis}>Edit details</button>
-    </div>`;}
+    </div>
+    ${ce?(!own(a).length?`<p class="muted" style="margin:0;font-size:13px">No owner yet. Add yourself as an owner to claim it.</p>`:""):`<p class="rolock">You can view this account. Only its owners (${esc(ownTxt(a))}) and admins can change it. Ask one of them to add you or hand it off.</p>`}`;}
   $("#dBody").innerHTML=bodyHTML(a);
 }
 
@@ -542,7 +558,7 @@ function bodyHTML(a){
   const ho=a.handoff&&!a.handoff.accepted?`<div class="handoff"><div><b>Handed off to ${esc(a.handoff.to)}</b> by ${esc(a.handoff.from||"Unassigned")} on ${fmtDate(a.handoff.at)}.${a.handoff.note?`<br>${esc(a.handoff.note)}`:""}</div>${S.me===a.handoff.to?`<button class="btn pri" data-act="accept">Accept lead</button>`:`<span class="lbl">Waiting on ${esc(a.handoff.to)}</span>`}</div>`:"";
   return `${ho}
   <div class="nextbox"><div class="txt"><span class="lbl">Next step</span><div>${a.nextAction?esc(a.nextAction):'<span class="muted">None set</span>'}</div></div>${a.nextDate?`<span class="mono ${a.nextDate<t?"due-over":""}">${a.nextDate<t?"Overdue · ":""}${fmtDate(a.nextDate)}</span>`:""}</div>
-  ${(()=>{const ds=S.deals.filter(d=>d.accountId===a.id);return ds.length?`<section><div class="sechead"><h3>Deals</h3></div><div class="deals">${ds.map(d=>`<div class="deal"><div><b>${esc(d.name)}</b><div class="sub">${esc(d.stage)}${d.owner?" · "+esc(d.owner):""}${d.closeDate?" · close "+fmtDate(d.closeDate):""}</div></div><div style="text-align:right"><div class="v">${money(d.value)}<span class="muted" style="font-size:13px">/${d.term==="monthly"?"mo":"yr"}</span></div><select data-dealstage="${esc(d.id)}" aria-label="Deal stage" ${S.canWrite?"":"disabled"}>${DEAL_STAGES.map(s=>`<option ${s===d.stage?"selected":""}>${s}</option>`).join("")}</select></div></div>`).join("")}</div></section>`:""})()}
+  ${(()=>{const ds=S.deals.filter(d=>d.accountId===a.id);return ds.length?`<section><div class="sechead"><h3>Deals</h3></div><div class="deals">${ds.map(d=>`<div class="deal"><div><b>${esc(d.name)}</b><div class="sub">${esc(d.stage)}${d.owner?" · "+esc(d.owner):""}${d.closeDate?" · close "+fmtDate(d.closeDate):""}</div></div><div style="text-align:right"><div class="v">${money(d.value)}<span class="muted" style="font-size:13px">/${d.term==="monthly"?"mo":"yr"}</span></div><select data-dealstage="${esc(d.id)}" aria-label="Deal stage" ${canEdit(a)?"":"disabled"}>${DEAL_STAGES.map(s=>`<option ${s===d.stage?"selected":""}>${s}</option>`).join("")}</select></div></div>`).join("")}</div></section>`:""})()}
   ${(()=>{const rs=remsFor(a.id);return rs.length?`<section><div class="sechead"><h3>Follow-ups</h3></div><div class="rems">${rs.map(r=>remRow(r,false)).join("")}</div></section>`:""})()}
   <section><h3>Activity</h3><div class="timeline" style="margin-top:12px">${ev.map(x=>`<div class="ev k-${esc(x.kind)}"><div class="h"><span class="kind">${esc(kindLabel(x.kind))}</span><span class="mono muted">${fmtDate(x.date||x.at)}</span><span class="muted">${esc(x.by||"")}</span></div>${x.text?`<p>${esc(x.text)}</p>`:""}${x.contactMet?`<p class="muted">Met with ${esc(x.contactMet)}</p>`:""}</div>`).join("")||'<p class="muted">No activity yet. Log a visit or add a note.</p>'}</div></section>
   <section><h3 style="margin-bottom:10px">Account</h3><dl class="facts">
@@ -551,7 +567,7 @@ function bodyHTML(a){
     ${factRow("List",a.list)}${factRow("Sector",a.sector)}${factRow("Tier",a.tier)}${factRow("Lane",a.lane)}${factRow("Route in",a.routeIn)}${factRow("Risk",a.risk)}
     ${factRow("Local evidence",a.localEvidence)}${factRow("Latest note",a.latestNote)}${factRow("Wendy's notes",a.wendyNotes)}${factRow("Research",a.research)}${factRow("Verified",a.verifiedAsOf)}
   </dl></section>
-  <section><div class="sechead"><h3>People</h3><button class="btn" data-comp="contact" ${S.canWrite?"":"disabled"}>Add contact</button></div>${(a.people||[]).length?`<div class="people">${a.people.map(p=>`<div class="person"><b>${esc(p.name)}</b><span class="muted">${esc([p.title,p.role].filter(Boolean).join(" · "))}</span>${p.phone?`<span class="mono">${esc(p.phone)} <button type="button" class="copy" data-copy="${esc(p.phone)}">Copy</button></span>`:""}${p.email?`<span class="mono">${esc(p.email)} <button type="button" class="copy" data-copy="${esc(p.email)}">Copy</button></span>`:""}</div>`).join("")}</div>`:'<p class="muted">No contacts on file yet.</p>'}</section>
+  <section><div class="sechead"><h3>People</h3><button class="btn" data-comp="contact" ${canEdit(a)?"":"disabled"}>Add contact</button></div>${(a.people||[]).length?`<div class="people">${a.people.map(p=>`<div class="person"><b>${esc(p.name)}</b><span class="muted">${esc([p.title,p.role].filter(Boolean).join(" · "))}</span>${p.phone?`<span class="mono">${esc(p.phone)} <button type="button" class="copy" data-copy="${esc(p.phone)}">Copy</button></span>`:""}${p.email?`<span class="mono">${esc(p.email)} <button type="button" class="copy" data-copy="${esc(p.email)}">Copy</button></span>`:""}</div>`).join("")}</div>`:'<p class="muted">No contacts on file yet.</p>'}</section>
   <p class="mono muted">Record ${esc(a.id)}${a.updatedAt?" · updated "+fmtDate(a.updatedAt)+(a.updatedBy?" by "+esc(a.updatedBy):""):""}</p>`;}
 
 function detailsForm(a,id){
@@ -609,7 +625,7 @@ function openComposer(kind,preset){
 function closeComposer(){const c=$("#composer");if(c){c.hidden=true;c.innerHTML=""}S.composer=null}
 
 async function submitComposer(){
-  const a=S.accounts.get(S.open);if(!a)return;const k=S.composer,v=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
+  const a=S.accounts.get(S.open);if(!a)return;if(!canEdit(a))return toast("Only owners and admins can change this account.");const k=S.composer,v=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
   const by=v("cBy")||S.me;
   if(!S.me){toast("Sign in again.");return}
   try{
@@ -653,6 +669,7 @@ async function logTouch(a,kind,date,text,met,by){
 async function submitQuick(){
   const name=$("#qCo").value.trim(),a=accts().find(x=>x.company.toLowerCase()===name.toLowerCase());
   if(!a)return toast("Pick a company from the list, or add it as a prospect first.");
+  if(!canEdit(a))return toast("Only owners and admins can log on "+a.company+".");
   if(!S.me){toast("Pick your name at the top first.");return}
   const t=$("#qText").value.trim();if(!t)return toast("Write what happened.");
   try{await logTouch(a,$("#qType").value,$("#qDate").value||today(),t,"",S.me);toast("Logged to "+a.company);S.open=null;render()}catch(e){}}
@@ -677,7 +694,7 @@ document.addEventListener("click",async e=>{
   if(t.dataset.done){const r=S.reminders.find(x=>x.id===t.dataset.done);if(!r)return;try{await queue("reminders/"+r.id,()=>db.doc("reminders/"+r.id).update({done:true,doneAt:nowISO(),doneBy:S.me}));if(r.accountId)await logActivity({accountId:r.accountId,kind:"followup",text:`${r.type} completed`});toast("Marked done")}catch(err){}return}
   if(t.dataset.nudge){const n=t.dataset.nudge,why=t.dataset.why||"";try{await db.collection("reminders").add({accountId:"",type:"Catch up",due:today(),time:"",assignee:n,note:"From "+(S.me||"admin")+": "+why,done:false,createdAt:nowISO(),createdBy:S.me,nudge:true});t.textContent="Nudged";t.disabled=true;toast(n+" will see this in My Work")}catch(err){toast(errText(err))}return}
   if(t.dataset.open){S.open=t.dataset.open;S.composer=null;render();return}
-  if(t.dataset.unown){const a=S.accounts.get(S.open),n=t.dataset.unown;if(!a)return;try{await patchAccount(a.id,ownPatch(own(a).filter(x=>x!==n)));await logActivity({accountId:a.id,kind:"owner",text:`Removed ${n} as owner`});toast(n+" removed")}catch(err){}return}
+  if(t.dataset.unown){const a=S.accounts.get(S.open),n=t.dataset.unown;if(!a)return;if(!canEdit(a))return toast("Only owners and admins can change owners.");try{await patchAccount(a.id,ownPatch(own(a).filter(x=>x!==n)));await logActivity({accountId:a.id,kind:"owner",text:`Removed ${n} as owner`});toast(n+" removed")}catch(err){}return}
   if(t.dataset.comp){openComposer(t.dataset.comp,t.dataset.preset);return}
   if(t.dataset.stage){S.f={...S.f,stage:t.dataset.stage,list:"",owner:"",q:""};saveF();location.hash="prospects";return}
   if(t.dataset.goto){location.hash=t.dataset.goto;return}
@@ -691,6 +708,7 @@ document.addEventListener("click",async e=>{
   if(act==="close"){S.open=null;closeComposer();render()}
   if(act==="cancel")closeComposer();
   if(act==="new"){S.open="__new";render()}
+  if(act==="syncxl"){t.disabled=true;t.textContent="Updating…";try{const r=await window.crmApi("/api/admin",{action:"syncExcel"});if(r.error)throw new Error(r.error);toast("Excel workbook updated")}catch(err){toast(err.message||"Update failed")}t.disabled=false;t.textContent="Update Excel now";return}
   if(act==="signout"){window.crmSignOut&&window.crmSignOut()}
   if(act==="pin"){window.crmChangePin&&window.crmChangePin()}
   if(act==="newperson"){const f=$("#personForm");f.hidden=false;$("#npEmail").focus()}
@@ -758,7 +776,7 @@ function matchDomain(){const em=$("#npEmail").value.trim().toLowerCase(),dom=em.
   if(a){$("#npCo").value=a.company;out.innerHTML=`Linked to <b>${esc(a.company)}</b> by email domain.`}else out.textContent="No company in the CRM uses "+dom+" yet. Pick or type the company.";}
 async function submitPerson(){
   const v=id=>$("#"+id).value.trim();const co=v("npCo"),a=accts().find(x=>x.company.toLowerCase()===co.toLowerCase());
-  if(!v("npName"))return toast("Enter the contact's name.");if(!a)return toast("Pick a company that's in the CRM, or add the company first.");
+  if(!v("npName"))return toast("Enter the contact's name.");if(!a)return toast("Pick a company that's in the CRM, or add the company first.");if(!canEdit(a))return toast("Only "+a.company+"'s owners and admins can add contacts there.");
   const p={name:v("npName"),title:v("npTitle"),phone:v("npPhone"),email:v("npEmail").toLowerCase(),confidence:"Added in CRM",addedBy:S.me,addedAt:today()};
   if(p.email){const dup=allPeople().find(x=>(x.email||"").toLowerCase()===p.email);if(dup)return toast(`${p.email} is already on file for ${dup.name} at ${dup.company}.`)}
   if((a.people||[]).some(x=>(x.name||"").toLowerCase()===p.name.toLowerCase()))return toast(p.name+" is already listed at "+a.company+".");
@@ -773,12 +791,12 @@ function boardHTML(){
   return `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><h2>Board</h2><label class="chk"><input type="checkbox" id="bMine" ${S.boardMine?"checked":""} ${S.me?"":"disabled"}> Only mine</label><label class="chk"><input type="checkbox" id="bAll" ${S.boardAll?"checked":""}> Show Parked and Lost</label><span class="muted" style="font-size:13px">Drag a card to change its stage.</span></div>
   <div class="board">${cols.map(s=>{const c=p.filter(a=>a.stage===s).sort((x,y)=>dealSum(y.id)-dealSum(x.id)||listRank(x.list)-listRank(y.list));const tot=c.reduce((n,a)=>n+dealSum(a.id),0);
     return `<div class="col" data-col="${esc(s)}"><div class="colhead"><span class="pill ${stCls(s)}">${esc(s)}</span><span class="mono muted">${c.length}${tot?" · "+money(tot):""}</span></div>
-    <div class="cards">${c.slice(0,60).map(a=>{const ds=dealSum(a.id),rs=remsFor(a.id);return `<div class="card" draggable="${S.canWrite}" data-card="${esc(a.id)}" data-open="${esc(a.id)}" tabindex="0"><b>${esc(a.company)}</b><span class="sub">${own(a).length?esc(ownTxt(a)):'<span class="unassigned">No owner</span>'}</span>${ds||rs.length?`<span class="cardmeta">${ds?`<span class="mono">${money(ds)}/yr</span>`:""}${rs.length?`<span class="mono ${rs[0].due<today()?"due-over":""}">${esc(rs[0].type)} ${fmtDate(rs[0].due)}</span>`:""}</span>`:""}</div>`}).join("")}${c.length>60?`<div class="empty">${c.length-60} more in Prospects</div>`:""}</div></div>`}).join("")}</div>`;}
+    <div class="cards">${c.slice(0,60).map(a=>{const ds=dealSum(a.id),rs=remsFor(a.id);return `<div class="card" draggable="${canEdit(a)}" data-card="${esc(a.id)}" data-open="${esc(a.id)}" tabindex="0"><b>${esc(a.company)}</b><span class="sub">${own(a).length?esc(ownTxt(a)):'<span class="unassigned">No owner</span>'}</span>${ds||rs.length?`<span class="cardmeta">${ds?`<span class="mono">${money(ds)}/yr</span>`:""}${rs.length?`<span class="mono ${rs[0].due<today()?"due-over":""}">${esc(rs[0].type)} ${fmtDate(rs[0].due)}</span>`:""}</span>`:""}</div>`}).join("")}${c.length>60?`<div class="empty">${c.length-60} more in Prospects</div>`:""}</div></div>`}).join("")}</div>`;}
 document.addEventListener("dragstart",e=>{const c=e.target.closest&&e.target.closest("[data-card]");if(!c)return;e.dataTransfer.setData("text/plain",c.dataset.card);e.dataTransfer.effectAllowed="move";c.classList.add("dragging")});
 document.addEventListener("dragend",e=>{document.querySelectorAll(".dragging,.col.over").forEach(x=>x.classList.remove("dragging","over"))});
 document.addEventListener("dragover",e=>{const col=e.target.closest&&e.target.closest("[data-col]");if(!col)return;e.preventDefault();document.querySelectorAll(".col.over").forEach(x=>x!==col&&x.classList.remove("over"));col.classList.add("over")});
 document.addEventListener("drop",async e=>{const col=e.target.closest&&e.target.closest("[data-col]");if(!col)return;e.preventDefault();col.classList.remove("over");
-  const id=e.dataTransfer.getData("text/plain"),a=S.accounts.get(id),s=col.dataset.col;if(!a||a.stage===s)return;
+  const id=e.dataTransfer.getData("text/plain"),a=S.accounts.get(id),s=col.dataset.col;if(!a||a.stage===s)return;if(!canEdit(a))return toast("Only owners and admins can move "+a.company+".");
   try{await patchAccount(a.id,{stage:s});await logActivity({accountId:a.id,kind:"stage",text:`${a.stage} to ${s}`});toast(`${a.company} moved to ${s}`+(s==="Won"?". Open it to convert to client.":""))}catch(err){}});
 
 /* ---------- admin: pace + audit ---------- */
@@ -859,6 +877,7 @@ window.startApp=function(adapter,me){
   db.collection("activity").orderBy("at","desc").limit(1000).onSnapshot(snap=>{S.activity=snap.docs.map(d=>({id:d.id,...d.data()}));render()},fail);
   db.collection("reminders").onSnapshot(snap=>{S.reminders=snap.docs.map(d=>({id:d.id,...d.data()}));render()},fail);
   db.collection("deals").onSnapshot(snap=>{S.deals=snap.docs.map(d=>({id:d.id,...d.data()}));render()},fail);
+  db.doc("meta/excel").onSnapshot(snap=>{S.excel=(snap.exists&&snap.data())||{};if(isAdminView(S.view))render()},()=>{});
   db.collection("users").onSnapshot(snap=>{S.users=snap.docs.map(d=>({id:d.id,...d.data()}));const act=S.users.filter(u=>u.active!==false);
     S.team=byLast(act.map(u=>u.name));S.admins=act.filter(u=>u.admin).map(u=>u.name);S.teamLoaded=true;render()},fail);
 };

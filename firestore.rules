@@ -1,0 +1,75 @@
+rules_version = '2';
+// Vanguard CRM rules for its own Firebase project (vanguard-crm).
+// Everyone signed in sees every account. Only an account's owners and admins can change it.
+// An account with no owners can be claimed by whoever adds themselves.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function crm() {
+      return request.auth != null && request.auth.token.crm == true;
+    }
+    function me() {
+      return request.auth.token.crmName;
+    }
+    function crmAdmin() {
+      return crm() && get(/databases/$(database)/documents/crm_users/$(request.auth.token.crmId)).data.admin == true;
+    }
+    function ownersOf(d) {
+      return d.get('owners', d.get('owner', '') == '' ? [] : [d.get('owner', '')]);
+    }
+    function canEditAccount(d) {
+      return crmAdmin() || ownersOf(d).size() == 0 || me() in ownersOf(d);
+    }
+    function canEditAccountId(id) {
+      return canEditAccount(get(/databases/$(database)/documents/crm_accounts/$(id)).data);
+    }
+
+    // Employees. Everyone signed in reads the list; only admins change it.
+    match /crm_users/{id} {
+      allow read: if crm();
+      allow create, update: if crmAdmin() && !request.resource.data.keys().hasAny(['hash', 'salt']);
+      allow delete: if false;
+    }
+    // PIN hashes and sync state. Server only.
+    match /crm_secrets/{id} {
+      allow read, write: if false;
+    }
+    match /crm_meta/{id} {
+      allow read: if crm();
+      allow write: if false;
+    }
+
+    match /crm_accounts/{id} {
+      allow read: if crm();
+      allow create: if crm();
+      allow update: if crm() && canEditAccount(resource.data);
+      allow delete: if crmAdmin();
+    }
+
+    match /crm_deals/{id} {
+      allow read: if crm();
+      allow create: if crm() && canEditAccountId(request.resource.data.accountId);
+      allow update: if crm() && canEditAccountId(resource.data.accountId);
+      allow delete: if crmAdmin();
+    }
+
+    // Follow-ups. You can set one for yourself or a teammate; you can close the ones you made or that are yours.
+    match /crm_reminders/{id} {
+      allow read: if crm();
+      allow create: if crm() && request.resource.data.createdBy == me();
+      allow update: if crm() && (crmAdmin() || resource.data.assignee == me() || resource.data.createdBy == me());
+      allow delete: if crmAdmin();
+    }
+
+    // Audit log. Add entries only as yourself. Nobody edits or deletes.
+    match /crm_activity/{id} {
+      allow read: if crm();
+      allow create: if crm() && request.resource.data.loggedBy == me();
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
