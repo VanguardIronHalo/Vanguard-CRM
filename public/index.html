@@ -254,12 +254,14 @@ a.btn{text-decoration:none;color:inherit}
 .emplist>div{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1.2fr) 64px auto auto;gap:10px;align-items:center}
 .emplist>div>span:first-child{flex:none}
 @media (max-width:640px){.emplist>div{grid-template-columns:1fr auto}}
+a.mark{text-decoration:none;color:inherit;border-radius:8px}
+.subnav-exit{margin-left:auto;text-transform:none!important;letter-spacing:0!important;font-family:var(--f-body)!important;font-weight:700!important}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:30;font-weight:700;max-width:90vw}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
 </style>
 
 <header class="bar"><div class="bar-in wrap">
-  <div class="mark"><img src="/vanguard-v.png" alt="Vanguard" width="50" height="40"><span>Vanguard CRM</span></div>
+  <a class="mark" href="#home" id="logo" aria-label="Vanguard CRM home"><img src="/vanguard-v.png" alt="Vanguard" width="50" height="40"><span>Vanguard CRM</span></a>
   <nav class="tabs" id="tabs"></nav>
   <div class="gsearch"><input type="search" id="gq" placeholder="Search companies, people, phone numbers" aria-label="Search everything" autocomplete="off"><div class="gres" id="gres" hidden></div></div>
   <div class="whoami" id="whoami"></div>
@@ -387,8 +389,7 @@ function render(){
   $("#tabs").innerHTML=VIEWS.map(([k,l])=>`<a href="#${k}" ${S.view===k?'aria-current="page"':""}>${l}${counts[k]!=null?`<span class="n">${counts[k]}</span>`:""}${k==="mine"&&dueN?`<span class="dot" title="${dueN} follow-up${dueN===1?"":"s"} due">${dueN}</span>`:""}</a>`).join("");
   if(isAdminView(S.view)&&!isAdmin()&&S.teamLoaded){location.hash="home";return}
   const wa=$("#whoami");
-  if(S.me&&!wa.dataset.me){wa.dataset.me=S.me;wa.innerHTML=`<span>Signed in as <b style="color:var(--ink)">${esc(S.me)}</b></span><span id="adminSlot"></span><button class="btn ghost" data-act="pin" style="padding:5px 8px;font-size:13px">Change PIN</button><button class="btn ghost" data-act="signout" style="padding:5px 8px;font-size:13px">Sign out</button>`}
-  const slot=$("#adminSlot");if(slot)slot.innerHTML=isAdmin()?`<a class="btn adminbtn" href="#pace" ${isAdminView(S.view)?'aria-current="page"':""}>Admin</a>`:"";
+  if(S.me&&!wa.dataset.me){wa.dataset.me=S.me;wa.innerHTML=`<span>Signed in as <b style="color:var(--ink)">${esc(S.me)}</b></span><button class="btn ghost" data-act="pin" style="padding:5px 8px;font-size:13px">Change PIN</button><button class="btn ghost" data-act="signout" style="padding:5px 8px;font-size:13px">Sign out</button>`}
   const v=$("#view");
   if(!S.loaded&&!S.accounts.size){v.innerHTML=`<div class="panel"><h3>Loading accounts</h3><p class="muted">Prospects, clients and activity will appear here in a moment.</p></div>`;}
   else if(S.loaded&&!S.accounts.size&&!isAdminView(S.view)){v.innerHTML=`<div class="panel"><h3>No accounts yet</h3><p class="muted">Add your first prospect to start tracking owners, visits and notes.</p><p><button class="btn pri" data-act="new">Add prospect</button></p></div>`;}
@@ -481,13 +482,10 @@ function listRows(view){
   </div>`).join("");}
 
 function isAdmin(){return !!S.me&&S.admins.includes(S.me)}
-function excelPanel(){const x=S.excel||{};
-  const st=x.status==="ok"?`<span class="pstat ps-pace">Up to date</span>`:x.status==="error"?`<span class="pstat ps-behind">Problem</span>`:`<span class="pstat ps-idle">Not set up yet</span>`;
-  return `<section class="panel" style="max-width:760px;margin-top:22px"><div class="sechead"><h3>Live Excel workbook</h3>${st}</div>
-    <p class="muted" style="margin:0 0 10px;font-size:13px">The CRM rebuilds the shared prospect workbook in OneDrive or SharePoint every 5 minutes when something changed. Everyone views it there. Edits typed into the workbook are replaced, so changes belong in the CRM.</p>
-    ${x.syncedAt?`<p style="margin:0 0 6px">Last updated <b>${new Date(x.syncedAt).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"})}</b>${x.by&&x.by!=="schedule"?" by "+esc(x.by):""}${x.prospects!=null?` · ${x.prospects} prospects, ${x.clients} client${x.clients===1?"":"s"}`:""}</p>`:""}
-    ${x.status==="error"?`<p class="rolock" style="margin:0 0 8px">${esc(x.error||"Unknown problem")}</p>`:""}
-    <div style="display:flex;gap:8px;flex-wrap:wrap">${x.webUrl?`<a class="btn" href="${esc(x.webUrl)}" target="_blank" rel="noopener">Open workbook</a>`:""}<button class="btn pri" data-act="syncxl">Update Excel now</button></div></section>`;}
+function excelPanel(){
+  return `<section class="panel" style="max-width:760px;margin-top:22px"><div class="sechead"><h3>Excel export</h3></div>
+    <p class="muted" style="margin:0 0 10px;font-size:13px">Builds a current workbook straight from the CRM in the same layout as the original prospect list, with tabs for all prospects, clients, follow-ups, team, people and the activity log. It's a snapshot of this moment; the CRM itself is always current.</p>
+    <button class="btn pri" data-act="dlxl">Download Excel</button></section>`;}
 function employeesHTML(){
   return `<h2>Employees</h2><p class="muted" style="max-width:66ch">Everyone here can sign in with their name and PIN, and appears in the owner and handoff menus. Turn on Admin next to a name to give that person the Admin pages.</p>
   <form id="teamForm" class="toolbar" style="max-width:760px"><input type="text" id="teamName" placeholder="Full name" style="flex:1"><button class="btn pri">Add employee</button></form>
@@ -708,7 +706,9 @@ document.addEventListener("click",async e=>{
   if(act==="close"){S.open=null;closeComposer();render()}
   if(act==="cancel")closeComposer();
   if(act==="new"){S.open="__new";render()}
-  if(act==="syncxl"){t.disabled=true;t.textContent="Updating…";try{const r=await window.crmApi("/api/admin",{action:"syncExcel"});if(r.error)throw new Error(r.error);toast("Excel workbook updated")}catch(err){toast(err.message||"Update failed")}t.disabled=false;t.textContent="Update Excel now";return}
+  if(act==="dlxl"){t.disabled=true;t.textContent="Building…";try{const r=await window.crmFetch("/api/export");if(!r.ok){let j={};try{j=await r.json()}catch(x){}throw new Error(j.error||"Export failed")}
+    const b=await r.blob(),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=`Vanguard Prospect List ${today()}.xlsx`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast("Excel downloaded")}
+    catch(err){toast(err.message||"Export failed")}t.disabled=false;t.textContent="Download Excel";return}
   if(act==="signout"){window.crmSignOut&&window.crmSignOut()}
   if(act==="pin"){window.crmChangePin&&window.crmChangePin()}
   if(act==="newperson"){const f=$("#personForm");f.hidden=false;$("#npEmail").focus()}
@@ -800,7 +800,7 @@ document.addEventListener("drop",async e=>{const col=e.target.closest&&e.target.
   try{await patchAccount(a.id,{stage:s});await logActivity({accountId:a.id,kind:"stage",text:`${a.stage} to ${s}`});toast(`${a.company} moved to ${s}`+(s==="Won"?". Open it to convert to client.":""))}catch(err){}});
 
 /* ---------- admin: pace + audit ---------- */
-function adminNav(){return `<nav class="subnav">${ADMIN_VIEWS.map(([k,l])=>`<a href="#${k}" ${S.view===k?'aria-current="page"':""}>${l}</a>`).join("")}</nav>`}
+function adminNav(){return `<nav class="subnav">${ADMIN_VIEWS.map(([k,l])=>`<a href="#${k}" ${S.view===k?'aria-current="page"':""}>${l}</a>`).join("")}<a href="#home" class="subnav-exit">Back to CRM</a></nav>`}
 function paceFor(n){
   const now=Date.now(),t=today(),acts=S.activity.filter(x=>x.by===n),touch=acts.filter(x=>TOUCHK.includes(x.kind));
   const inDays=(x,d)=>now-new Date(x.at)<d*864e5;
@@ -860,6 +860,8 @@ function matchLogin(){
   const mt=toks(nm);
   const hit=S.team.find(n=>n.toLowerCase()===nm)||S.team.find(n=>{const t=toks(n);return t[0]===mt[0]&&t[t.length-1]===mt[mt.length-1]})||S.team.find(n=>{const t=toks(n);return t[t.length-1]===mt[mt.length-1]&&mt.length>1});
   if(hit){S.loginName=hit;if(S.me!==hit){S.me=hit;ls.set("vcrm.me",hit)}}}
+document.getElementById("logo").addEventListener("click",e=>{e.preventDefault();
+  location.hash=isAdmin()&&!isAdminView(S.view)?"pace":"home";});
 function route(){const h=location.hash.slice(1);S.view=VIEWS.some(v=>v[0]===h)||isAdminView(h)?h:"home";$("#view").innerHTML="";render()}
 window.addEventListener("hashchange",route);
 
@@ -877,7 +879,6 @@ window.startApp=function(adapter,me){
   db.collection("activity").orderBy("at","desc").limit(1000).onSnapshot(snap=>{S.activity=snap.docs.map(d=>({id:d.id,...d.data()}));render()},fail);
   db.collection("reminders").onSnapshot(snap=>{S.reminders=snap.docs.map(d=>({id:d.id,...d.data()}));render()},fail);
   db.collection("deals").onSnapshot(snap=>{S.deals=snap.docs.map(d=>({id:d.id,...d.data()}));render()},fail);
-  db.doc("meta/excel").onSnapshot(snap=>{S.excel=(snap.exists&&snap.data())||{};if(isAdminView(S.view))render()},()=>{});
   db.collection("users").onSnapshot(snap=>{S.users=snap.docs.map(d=>({id:d.id,...d.data()}));const act=S.users.filter(u=>u.active!==false);
     S.team=byLast(act.map(u=>u.name));S.admins=act.filter(u=>u.admin).map(u=>u.name);S.teamLoaded=true;render()},fail);
 };
@@ -928,6 +929,7 @@ async function post(path,body,withAuth){
   if(!r.ok&&!j.error)j.error="Something went wrong ("+r.status+").";
   return j;}
 window.crmApi=(path,body)=>post(path,body,true);
+window.crmFetch=async path=>fetch(path,{headers:{authorization:"Bearer "+await auth.currentUser.getIdToken()}});
 
 function setMode(m){
   mode=m;L.err.textContent="";L.pin.value="";L.conf.value="";L.cur.value="";

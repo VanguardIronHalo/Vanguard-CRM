@@ -1,8 +1,6 @@
 // POST /api/admin {action, name} with "Authorization: Bearer <Firebase ID token>"
-// Admin only. Actions: resetPin (clears a PIN so the person makes a new one at next sign in),
-// syncExcel (rebuilds the live workbook right now).
+// Admin only. Actions: resetPin (clears a PIN so the person makes a new one at next sign in).
 const { fb, USERS, SECRETS, slug, json, parse, caller } = require("../lib/common");
-const { runSync } = require("../lib/excel");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return json(405, { error: "Use POST" });
@@ -25,14 +23,6 @@ exports.handler = async (event) => {
         at: new Date().toISOString(), system: true,
       });
       return json(200, { ok: true });
-    }
-    if (action === "syncExcel") {
-      try {
-        const r = await runSync({ force: true, by: me.name });
-        return json(200, { ok: true, syncedAt: r.syncedAt, webUrl: r.webUrl });
-      } catch (e) {
-        return json(502, { error: String(e.message || e) });
-      }
     }
     return json(400, { error: "Unknown action." });
   } catch (e) {

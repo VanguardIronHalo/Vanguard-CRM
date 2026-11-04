@@ -1,6 +1,6 @@
 # Vanguard CRM
 
-Vanguard Security's prospect and client tracker, at **vanguardcrm.netlify.app**. Everyone signs in with their name and a PIN they choose. As people work in the CRM, it keeps a live Excel workbook in OneDrive or SharePoint up to date so the whole team can see where every prospect stands.
+Vanguard Security's prospect and client tracker, at **vanguardcrm.netlify.app**. Everyone signs in with their name and a PIN they choose. Firebase holds the live data. Admins can download a current Excel copy at any time.
 
 Matthew Lambert, Vice President, Vanguard Security LLC
 
@@ -8,7 +8,8 @@ Matthew Lambert, Vice President, Vanguard Security LLC
 
 - **The CRM is where work happens.** Visits, calls, notes, follow-ups, owners, stages and deals are entered at vanguardcrm.netlify.app.
 - **Firebase project `vanguard-crm`** holds the data. It has its own project, kept separate from IronHalo.
-- **The Excel workbook is the shared view.** Every 5 minutes, if anything changed, the CRM rebuilds the workbook and saves it to OneDrive or SharePoint. It uses the same layout as the original prospect list, plus tabs for all prospects (filterable), clients, follow-ups, team activity, people and the activity log. The workbook is read only by design, and anything typed into it is replaced at the next update. Admins can force an update from Admin, Employees, Update Excel now.
+- **Excel on demand.** Admin menu, Employees, Download Excel builds a current workbook from Firebase in the same layout as the original prospect list, plus tabs for all prospects (filterable), clients, follow-ups, team, people and the activity log. It's a snapshot. Changes go in the CRM.
+- **Hidden admin menu.** There's no Admin button. Admins click the Vanguard logo to open the admin menu (team pace, audit log, employees). When anyone else clicks the logo, it goes to the Pipeline. The server and database rules still block non-admins even if they find the page.
 - **Who can change what:** everyone sees every account. Only an account's owners and admins can change it. An account with no owner can be claimed by whoever adds themselves. The database rules enforce this, not just the screens.
 - **PINs** are hashed on the server (PBKDF2, 150,000 rounds) and kept where no browser can read them. Five wrong PINs lock a name for 15 minutes. Admins reset PINs from the Employees page.
 - **Audit log:** every change is recorded with who made it, and entries can't be edited or deleted.
@@ -19,10 +20,10 @@ Matthew Lambert, Vice President, Vanguard Security LLC
 |---|---|
 | `public/index.html` | The whole app, plus the sign in screen |
 | `netlify/functions/login.js`, `set-pin.js`, `names.js` | Sign in and PINs |
-| `netlify/functions/admin.js` | Admin actions: reset a PIN, update Excel now |
-| `netlify/functions/excel-sync.js` | Runs every 5 minutes and updates the workbook |
+| `netlify/functions/admin.js` | Admin actions: reset a PIN |
+| `netlify/functions/export.js` | Builds the Excel download (admins only) |
 | `netlify/functions/setup.js` | One time load of the employees and the 233 prospects |
-| `netlify/lib/excel.js` | Builds the workbook and uploads it to Microsoft |
+| `netlify/lib/excel.js` | Builds the workbook |
 | `firestore.rules` | Database rules for the vanguard-crm Firebase project |
 
 ## One time setup
@@ -38,20 +39,7 @@ Do these in order. Each step needs the one before it.
 5. **Web app config:** Project settings, General, Your apps, add a Web app named `vanguard-crm`. Copy the config object; you'll need it in step 3.
 6. **Service account key:** Project settings, Service accounts, Generate new private key. This downloads a JSON file. Keep it private and never commit it. Netlify uses it to check PINs.
 
-### 2. Let the CRM write to OneDrive or SharePoint
-
-The CRM needs its own sign in to Microsoft 365 so it can save the workbook without anyone being logged in.
-
-1. Go to **entra.microsoft.com**, App registrations, New registration. Name it `Vanguard CRM`, single tenant, no redirect URI.
-2. On the app's page, copy the **Application (client) ID** and the **Directory (tenant) ID**.
-3. Certificates and secrets, New client secret, 24 months. Copy the **Value** right away, because it's shown only once. Put a reminder on your calendar before it expires.
-4. API permissions, Add a permission, Microsoft Graph, **Application permissions**, `Files.ReadWrite.All`. Then click **Grant admin consent**. Without consent, the upload is refused.
-5. Decide where the workbook lives:
-   - **Your OneDrive:** you'll set `EXCEL_DRIVE` to `user:matthew@vanguard901.com`.
-   - **A SharePoint or Teams library** (better if others should own it too): you'll set `EXCEL_DRIVE` to `drive:` followed by the library's drive ID. Ask me and I'll walk you through finding it.
-6. After the first update, open the workbook in OneDrive or SharePoint and **share it with the team as view only**. That keeps the CRM as the one place where changes get made.
-
-### 3. Create the Netlify site from GitHub
+### 2. Create the Netlify site from GitHub
 
 1. Netlify, Add new site, Import an existing project, GitHub, **VanguardIronHalo/Vanguard-CRM**. `netlify.toml` already holds the build settings.
 2. Site configuration, Site details, Change site name, **vanguardcrm**.
@@ -61,16 +49,11 @@ The CRM needs its own sign in to Microsoft 365 so it can save the workbook witho
 |---|---|
 | `FIREBASE_SERVICE_ACCOUNT` | The whole service account JSON from step 1.6 |
 | `FIREBASE_WEB_CONFIG` | The web config from step 1.5 as one line of JSON, for example `{"apiKey":"...","authDomain":"vanguard-crm.firebaseapp.com","projectId":"vanguard-crm","storageBucket":"...","messagingSenderId":"...","appId":"..."}` |
-| `MS_TENANT_ID` | Directory (tenant) ID from step 2.2 |
-| `MS_CLIENT_ID` | Application (client) ID from step 2.2 |
-| `MS_CLIENT_SECRET` | Secret value from step 2.3 |
-| `EXCEL_DRIVE` | `user:matthew@vanguard901.com` or `drive:<library id>` |
-| `EXCEL_PATH` | Where to save it, for example `Vanguard CRM/Vanguard Prospect List (Live).xlsx` |
-| `CRM_SETUP_KEY` | Any long phrase you make up. Delete it after step 4. |
+| `CRM_SETUP_KEY` | Any long phrase you make up. Delete it after step 3. |
 
 4. Deploys, Trigger deploy, so the functions pick up the variables.
 
-### 4. Load the starting data
+### 3. Load the starting data
 
 In PowerShell, using the key you made up:
 
@@ -80,19 +63,19 @@ Invoke-RestMethod -Method Post "https://vanguardcrm.netlify.app/api/setup?key=YO
 
 You should see 11 employees and 233 accounts added. Running it twice is safe. Then **delete `CRM_SETUP_KEY`** in Netlify and redeploy, which turns setup off.
 
-### 5. Sign in and check Excel
+### 4. Sign in
 
-Open vanguardcrm.netlify.app, pick your name and make your PIN. You start as the only admin. Go to Admin, Employees, and click **Update Excel now**. The panel should say "Up to date" with an Open workbook button. If it shows a problem, the message says which setting to fix.
+Open vanguardcrm.netlify.app, pick your name and make your PIN. You start as the only admin. Click the Vanguard logo to open the admin menu, then Employees, to make others admins, add or remove people, reset PINs, and download Excel.
 
 ## Day to day
 
-- **New employee:** Admin, Employees, Add employee. They make a PIN the first time they sign in.
-- **Forgotten PIN:** Admin, Employees, Reset PIN. It signs them out everywhere.
-- **Someone leaves:** Admin, Employees, Remove. They can't sign in anymore, and their history stays.
+- **New employee:** Logo, Employees, Add employee. They make a PIN the first time they sign in.
+- **Forgotten PIN:** Logo, Employees, Reset PIN. It signs them out everywhere.
+- **Someone leaves:** Logo, Employees, Remove. They can't sign in anymore, and their history stays.
 - **Changing the app:** edit, commit, push to `main`. Netlify redeploys on its own.
-- **Workbook didn't update:** usually someone has it open in desktop Excel with editing on, which locks the file. It tries again in 5 minutes. Admin, Employees shows the last update and any error.
+- **Need a spreadsheet:** logo, Employees, Download Excel.
 
 ## Not built yet
 
 - Merging duplicate records
-- Text or email alerts for reminders (they show in the app and the Follow-ups tab)
+- Text or email alerts for reminders (they show in the app)

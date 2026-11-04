@@ -8,9 +8,6 @@
   external_node_modules = ["firebase-admin", "exceljs"]
   included_files = ["netlify/data/**"]
 
-[functions."excel-sync"]
-  schedule = "*/5 * * * *"
-
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"

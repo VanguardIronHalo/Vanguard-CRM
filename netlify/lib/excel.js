@@ -1,8 +1,6 @@
-// Builds the live prospect workbook from the CRM and uploads it to OneDrive or SharePoint.
-// The CRM is the source of truth. The workbook is rebuilt from it, so edits typed into
-// the workbook are replaced at the next update.
+// Builds a prospect workbook from the CRM on demand (Admin, Employees, Download Excel).
+// Firebase is the source of truth; the workbook is a snapshot of it.
 const ExcelJS = require("exceljs");
-const crypto = require("crypto");
 const { fb } = require("./common");
 
 const BLUE = "FF2E3192", WHITE = "FFFFFFFF", BLACK = "FF000000", GREY = "FFE9EBF4", RED = "FFB42318", PALE = "FFF3F4F9";
@@ -95,7 +93,7 @@ function banner(ws, title, cols) {
   const a = ws.getCell(1, 1); a.value = title; a.font = { name: FONT, size: 16, bold: true, color: { argb: BLUE } };
   ws.mergeCells(2, 1, 2, cols);
   const b = ws.getCell(2, 1);
-  b.value = `Updated ${ctNow()} from Vanguard CRM (vanguardcrm.netlify.app). This sheet is read only: make changes in the CRM. Anything typed here is replaced at the next update.`;
+  b.value = `Snapshot taken ${ctNow()} from Vanguard CRM (vanguardcrm.netlify.app). The CRM is always current; changes made in this file do not go back to it.`;
   b.font = { name: FONT, italic: true, color: { argb: "FF5A5E7A" } }; b.alignment = { wrapText: true }; ws.getRow(2).height = 30;
 }
 function dateCell(c, s, over) {
@@ -189,55 +187,7 @@ async function buildWorkbook(data) {
     const d = dt(x.at); row.values = [d, x.who, x.kind, x.company, x.text]; if (d) row.getCell(1).numFmt = "mmm d, yyyy h:mm AM/PM";
   });
 
-  // Fingerprint of the content (not the timestamp) so unchanged data skips the upload
-  const fingerprint = crypto.createHash("sha256").update(JSON.stringify({ ...v, activity: v.activity.slice(0, 300) })).digest("hex");
-  return { buffer: await wb.xlsx.writeBuffer(), fingerprint, counts: { prospects: v.prospects.length, clients: v.clients.length } };
+  return { buffer: await wb.xlsx.writeBuffer(), counts: { prospects: v.prospects.length, clients: v.clients.length } };
 }
 
-async function graphToken() {
-  const { MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET } = process.env;
-  if (!MS_TENANT_ID || !MS_CLIENT_ID || !MS_CLIENT_SECRET) throw new Error("Microsoft sign in settings (MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET) are not set.");
-  const r = await fetch(`https://login.microsoftonline.com/${MS_TENANT_ID}/oauth2/v2.0/token`, {
-    method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ client_id: MS_CLIENT_ID, client_secret: MS_CLIENT_SECRET, scope: "https://graph.microsoft.com/.default", grant_type: "client_credentials" }),
-  });
-  const j = await r.json();
-  if (!r.ok) throw new Error("Microsoft sign in failed: " + (j.error_description || j.error || r.status));
-  return j.access_token;
-}
-
-function uploadUrl() {
-  const target = process.env.EXCEL_DRIVE || "";      // "user:matthew@vanguard901.com" or "drive:<driveId>"
-  const path = (process.env.EXCEL_PATH || "Vanguard CRM/Vanguard Prospect List (Live).xlsx").replace(/^\/+/, "");
-  const enc = path.split("/").map(encodeURIComponent).join("/");
-  if (target.startsWith("user:")) return `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(target.slice(5))}/drive/root:/${enc}:/content`;
-  if (target.startsWith("drive:")) return `https://graph.microsoft.com/v1.0/drives/${encodeURIComponent(target.slice(6))}/root:/${enc}:/content`;
-  throw new Error('EXCEL_DRIVE is not set. Use "user:you@vanguard901.com" for OneDrive or "drive:<id>" for a SharePoint library.');
-}
-
-async function runSync({ force = false, by = "schedule" } = {}) {
-  const { db } = fb();
-  const metaRef = db.collection("crm_meta").doc("excel");
-  const meta = (await metaRef.get()).data() || {};
-  try {
-    const data = await loadData();
-    const { buffer, fingerprint, counts } = await buildWorkbook(data);
-    if (!force && meta.fingerprint === fingerprint && meta.status === "ok") {
-      await metaRef.set({ checkedAt: new Date().toISOString() }, { merge: true });
-      return { skipped: true };
-    }
-    const token = await graphToken();
-    const r = await fetch(uploadUrl(), { method: "PUT", headers: { authorization: "Bearer " + token, "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }, body: buffer });
-    const j = await r.json().catch(() => ({}));
-    if (r.status === 423) throw new Error("The workbook is locked, usually because someone has it open in desktop Excel with editing on. It will try again at the next update.");
-    if (!r.ok) throw new Error("Upload to Microsoft failed: " + ((j.error && j.error.message) || r.status));
-    const res = { status: "ok", fingerprint, syncedAt: new Date().toISOString(), checkedAt: new Date().toISOString(), by, webUrl: j.webUrl || meta.webUrl || "", error: "", ...counts };
-    await metaRef.set(res, { merge: true });
-    return res;
-  } catch (e) {
-    await metaRef.set({ status: "error", error: String(e.message || e), checkedAt: new Date().toISOString(), by }, { merge: true });
-    throw e;
-  }
-}
-
-module.exports = { runSync, buildWorkbook, loadData };
+module.exports = { buildWorkbook, loadData };
