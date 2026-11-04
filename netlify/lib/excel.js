@@ -11,7 +11,7 @@ const LIST_ORDER = ["Call This Week", "Property Managers — Work Next", "Prospe
 const TOUCH = ["call", "email", "meeting", "visit", "note"];
 const KIND = { call: "Call", email: "Email", meeting: "Meeting", visit: "Site visit", note: "Note", handoff: "Handoff", converted: "Became client",
   reverted: "Back to prospect", stage: "Stage change", owner: "Owner change", created: "Added", next: "Next step", accepted: "Handoff accepted",
-  edit: "Details edited", deal: "Deal", contact: "Contact added", reminder: "Reminder set", followup: "Follow-up done", employee: "Employee change", pinreset: "PIN reset" };
+  edit: "Details edited", deal: "Deal", lane: "Lane", contact: "Contact added", reminder: "Reminder set", followup: "Follow-up done", employee: "Employee change", pinreset: "PIN reset" };
 
 const listRank = (l) => { const i = LIST_ORDER.indexOf(l); return i < 0 ? 50 : i; };
 const owners = (a) => (Array.isArray(a.owners) ? a.owners : a.owner ? [a.owner] : []);
@@ -57,7 +57,7 @@ function shape(data) {
     const r = (remBy[a.id] || [])[0];
     const open = (dealBy[a.id] || []).reduce((s, d) => s + annual(d), 0);
     return {
-      id: a.id, list: a.list || "Added in CRM", company: a.company, stage: a.stage || "", owners: owners(a).join(", "),
+      id: a.id, list: a.list || "Added in CRM", company: a.company, stage: a.stage || "", lane: a.lane ? a.lane + (a.laneConfirmed ? "" : " (suggested)") : "", owners: owners(a).join(", "),
       next: a.nextAction || "", nextDate: a.nextDate || "", lastTouch: lastTouch(a), lastVisit: a.lastVisit || "",
       follow: r ? `${r.type}${r.assignee ? " (" + r.assignee + ")" : ""}` : "", followDate: r ? r.due : "", followOver: !!(r && r.due < t),
       deals: open || "", contact: a.contact || "", phone: a.phone || "", address: a.address || "", sector: a.sector || "", why: a.why || "",
@@ -112,13 +112,13 @@ function table(ws, startRow, headers, widths, rows, fill) {
   return startRow + 1 + rows.length;
 }
 
-const PCOLS = ["Company", "Stage", "Owners", "Next step", "Next date", "Last touch", "Last visit", "Follow-up", "Follow-up date", "Open deals ($/yr)", "Contact", "Main phone", "Address", "Sector", "Why"];
-const PW = [30, 14, 22, 30, 12, 12, 12, 24, 13, 14, 30, 15, 32, 20, 50];
+const PCOLS = ["Company", "Lane", "Stage", "Owners", "Next step", "Next date", "Last touch", "Last visit", "Follow-up", "Follow-up date", "Open deals ($/yr)", "Contact", "Main phone", "Address", "Sector", "Why"];
+const PW = [30, 20, 14, 22, 30, 12, 12, 12, 24, 13, 14, 30, 15, 32, 20, 50];
 function fillProspect(row, r) {
-  row.values = [r.company, r.stage, r.owners, r.next, null, null, null, r.follow, null, r.deals || null, r.contact, r.phone, r.address, r.sector, r.why];
-  dateCell(row.getCell(5), r.nextDate, r.nextDate && r.nextDate < todayCT());
-  dateCell(row.getCell(6), r.lastTouch); dateCell(row.getCell(7), r.lastVisit); dateCell(row.getCell(9), r.followDate, r.followOver);
-  if (r.deals) row.getCell(10).numFmt = '"$"#,##0';
+  row.values = [r.company, r.lane, r.stage, r.owners, r.next, null, null, null, r.follow, null, r.deals || null, r.contact, r.phone, r.address, r.sector, r.why];
+  dateCell(row.getCell(6), r.nextDate, r.nextDate && r.nextDate < todayCT());
+  dateCell(row.getCell(7), r.lastTouch); dateCell(row.getCell(8), r.lastVisit); dateCell(row.getCell(10), r.followDate, r.followOver);
+  if (r.deals) row.getCell(11).numFmt = '"$"#,##0';
   row.getCell(1).font = { name: FONT, bold: true };
 }
 
@@ -147,10 +147,10 @@ async function buildWorkbook(data) {
   ws = wb.addWorksheet("All Prospects", { views: [{ state: "frozen", ySplit: 3 }] });
   banner(ws, "All prospects (sort and filter here)", PCOLS.length + 1);
   table(ws, 3, ["List", ...PCOLS], [26, ...PW], v.prospects, (row, x) => {
-    row.values = [x.list, x.company, x.stage, x.owners, x.next, null, null, null, x.follow, null, x.deals || null, x.contact, x.phone, x.address, x.sector, x.why];
-    dateCell(row.getCell(6), x.nextDate, x.nextDate && x.nextDate < todayCT());
-    dateCell(row.getCell(7), x.lastTouch); dateCell(row.getCell(8), x.lastVisit); dateCell(row.getCell(10), x.followDate, x.followOver);
-    if (x.deals) row.getCell(11).numFmt = '"$"#,##0';
+    row.values = [x.list, x.company, x.lane, x.stage, x.owners, x.next, null, null, null, x.follow, null, x.deals || null, x.contact, x.phone, x.address, x.sector, x.why];
+    dateCell(row.getCell(7), x.nextDate, x.nextDate && x.nextDate < todayCT());
+    dateCell(row.getCell(8), x.lastTouch); dateCell(row.getCell(9), x.lastVisit); dateCell(row.getCell(11), x.followDate, x.followOver);
+    if (x.deals) row.getCell(12).numFmt = '"$"#,##0';
   });
   ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3 + v.prospects.length, column: PCOLS.length + 1 } };
 

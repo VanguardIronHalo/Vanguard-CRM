@@ -256,6 +256,14 @@ a.btn{text-decoration:none;color:inherit}
 @media (max-width:640px){.emplist>div{grid-template-columns:1fr auto}}
 a.mark{text-decoration:none;color:inherit;border-radius:8px}
 .subnav-exit{margin-left:auto;text-transform:none!important;letter-spacing:0!important;font-family:var(--f-body)!important;font-weight:700!important}
+.lane{display:inline-block;font-family:var(--f-mono);font-size:10.5px;font-weight:500;padding:1px 6px;border-radius:4px;vertical-align:1px;white-space:nowrap}
+.lane-vg{background:var(--brand);color:var(--brand-ink)}
+.lane-ih{background:var(--ink);color:var(--bg)}
+.lane-both{background:linear-gradient(90deg,var(--brand) 50%,var(--ink) 50%);color:#FFFFFF}
+.lane.sugg{opacity:.55;outline:1px dashed var(--muted);outline-offset:1px}
+.lane.none{background:transparent;color:var(--warn);border:1px dashed var(--warn)}
+select.needs{border-color:var(--warn);box-shadow:0 0 0 2px var(--warn-soft)}
+.needlane{display:flex;flex-direction:column;gap:4px;background:var(--warn-soft);padding:10px;border-radius:8px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:30;font-weight:700;max-width:90vw}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
 </style>
@@ -281,13 +289,15 @@ const STAGES=["Not researched","Researched","Contacted","Meeting","Proposal","Wo
 const SERVICES=["Armed guard","Unarmed guard","Vehicle patrol","Remote monitoring","IronHalo","Fire watch","Event security"];
 const VIEWS=[["home","Pipeline"],["prospects","Prospects"],["clients","Clients"],["board","Board"],["people","People"],["mine","My Work"]];
 const TOUCH_TYPES=[["call","Call"],["email","Email"],["meeting","Meeting"],["visit","Site visit"]];
+const LANES=["Vanguard","Iron Halo","Vanguard + Iron Halo"];
+const LANE_SHORT={"Vanguard":"VG","Iron Halo":"IH","Vanguard + Iron Halo":"VG + IH"};
 const REM_TYPES=["Follow-up call","Zoom call","Email follow-up","Site visit","Send proposal","Catch up"];
 const ADMIN_VIEWS=[["pace","Team pace"],["audit","Audit log"],["employees","Employees"]];
 const TOUCHK=["call","email","meeting","visit","note"];
 const GENERIC=["gmail.com","yahoo.com","outlook.com","hotmail.com","icloud.com","aol.com","comcast.net","att.net","live.com","msn.com","me.com"];
 const DEAL_STAGES=["Open","Proposal sent","Negotiating","Won","Lost"];
 const S={excel:{},users:[],reminders:[],boardAll:false,boardMine:false,au:{who:"",kind:"",q:""},admins:[],loginName:"",isOwner:false,levelAdmin:false,accounts:new Map(),activity:[],deals:[],team:[],me:"",view:"home",open:null,composer:null,loaded:false,canWrite:true,
-  f:{q:"",list:"",stage:"",owner:"",sort:"order",dir:1}};
+  f:{q:"",list:"",stage:"",owner:"",lane:"",sort:"order",dir:1}};
 let db=null,user=null,uid=null;
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -322,6 +332,8 @@ const own=a=>Array.isArray(a.owners)?a.owners:(a.owner?[a.owner]:[]);
 const owns=(a,n)=>!!n&&own(a).includes(n);
 const ownTxt=a=>own(a).join(", ");
 const canEdit=a=>!!a&&(isAdmin()||!own(a).length||owns(a,S.me));
+const laneChip=a=>a.lane?`<span class="lane lane-${a.lane===LANES[0]?"vg":a.lane===LANES[1]?"ih":"both"} ${a.laneConfirmed?"":"sugg"}" title="${esc(a.lane)}${a.laneConfirmed?"":" (suggested, owner hasn't confirmed)"}">${LANE_SHORT[a.lane]||esc(a.lane)}${a.laneConfirmed?"":"?"}</span>`:`<span class="lane none" title="No lane picked">No lane</span>`;
+const laneOK=a=>!!(a.lane&&a.laneConfirmed);
 const canCloseRem=r=>isAdmin()||r.assignee===S.me||r.createdBy===S.me;
 const ownPatch=list=>({owners:list,owner:list[0]||"",assignedAt:nowISO()});
 const money=n=>"$"+Math.round(Number(n)||0).toLocaleString("en-US");
@@ -373,9 +385,10 @@ function filtered(type){
   if(type!=="mine"){
     if(f.list)r=r.filter(a=>a.list===f.list);
     if(f.stage)r=r.filter(a=>a.stage===f.stage);
+    if(f.lane)r=r.filter(a=>f.lane==="__none"?!laneOK(a):a.lane===f.lane);
     if(f.owner)r=r.filter(a=>f.owner==="__none"?!own(a).length:owns(a,f.owner));
   }
-  if(q)r=r.filter(a=>[a.company,a.contact,a.sector,a.address,a.why,ownTxt(a),(a.people||[]).map(p=>p.name).join(" ")].join(" ").toLowerCase().includes(q));
+  if(q)r=r.filter(a=>[a.company,a.contact,a.sector,a.address,a.why,a.lane,ownTxt(a),(a.people||[]).map(p=>p.name).join(" ")].join(" ").toLowerCase().includes(q));
   const k=type==="mine"?"nextDate":f.sort,d=type==="mine"?1:f.dir;
   const val=a=>k==="order"?(listRank(a.list)*1000+(a.order||999)):k==="stage"?STAGES.indexOf(a.stage):k==="owner"?ownTxt(a):(a[k]||"");
   r.sort((x,y)=>{const A=val(x),B=val(y);if(A===""&&B!=="")return 1;if(B===""&&A!=="")return-1;return (A>B?1:A<B?-1:0)*d||String(x.company).localeCompare(y.company)});
@@ -455,13 +468,15 @@ function listShell(view){
   return `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><h2>${view==="clients"?"Clients":mine?"My Work":"Prospects"}</h2>
     ${view==="prospects"?'<button class="btn pri" data-act="new" style="margin-left:auto">Add prospect</button>':""}</div>
   ${mine&&!S.me?'<p class="notice">Pick your name at the top so the app knows which leads are yours.</p>':""}
+  ${mine&&S.me?(()=>{const n=accts().filter(a=>owns(a,S.me)&&!laneOK(a)).length;return n?`<p class="rolock" style="margin-top:14px">${n} of your accounts need a lane confirmed. Open each one and pick Vanguard, Iron Halo, or Vanguard + Iron Halo before you reach out.</p>`:""})():""}
   ${mine?'<section class="panel" style="margin-top:14px"><h3>My follow-ups</h3><div id="remBox"></div></section>':""}
   <div class="toolbar">
     <input type="search" id="q" placeholder="Search company, contact, sector, address" value="${esc(f.q)}">
     ${mine?"":`<select id="fList" aria-label="List"><option value="">All lists</option>${lists().map(l=>`<option ${l===f.list?"selected":""}>${esc(l)}</option>`).join("")}</select>
+    <select id="fLane" aria-label="Lane"><option value="">All lanes</option>${LANES.map(l=>`<option ${l===f.lane?"selected":""}>${l}</option>`).join("")}<option value="__none" ${f.lane==="__none"?"selected":""}>Lane not confirmed</option></select>
     <select id="fStage" aria-label="Stage"><option value="">All stages</option>${STAGES.map(s=>`<option ${s===f.stage?"selected":""}>${s}</option>`).join("")}</select>
     <select id="fOwner" aria-label="Owner"><option value="">All owners</option><option value="__none" ${f.owner==="__none"?"selected":""}>No owner</option>${S.team.map(n=>`<option ${n===f.owner?"selected":""}>${esc(n)}</option>`).join("")}</select>
-    ${(f.list||f.stage||f.owner||f.q)?'<button class="btn ghost" data-act="clear">Clear</button>':""}`}
+    ${(f.list||f.stage||f.owner||f.lane||f.q)?'<button class="btn ghost" data-act="clear">Clear</button>':""}`}
     <span class="count" id="count"></span>
   </div>
   <div class="table">
@@ -473,7 +488,7 @@ function listRows(view){
   const r=filtered(view==="clients"?"client":view==="mine"?"mine":"prospect"),t=today();
   if(!r.length)return `<div class="tr"><span class="empty">${view==="mine"?(S.me?"No accounts are assigned to you yet. Open any prospect and add yourself as an owner.":"Pick your name at the top."):"No accounts match these filters."}</span></div>`;
   return r.map(a=>`<div class="tr row ${S.open===a.id?"active":""}" data-open="${esc(a.id)}" tabindex="0">
-    <div class="cell-co"><span class="co">${esc(a.company)}${a.handoff&&!a.handoff.accepted?'<span class="flag">HANDOFF</span>':""}</span><span class="sub">${esc(a.type==="client"?(a.services||[]).join(", ")||"Client":(a.list||""))}${a.sector?" · "+esc(a.sector):""}</span></div>
+    <div class="cell-co"><span class="co">${laneChip(a)} ${esc(a.company)}${a.handoff&&!a.handoff.accepted?'<span class="flag">HANDOFF</span>':""}</span><span class="sub">${esc(a.type==="client"?(a.services||[]).join(", ")||"Client":(a.list||""))}${a.sector?" · "+esc(a.sector):""}</span></div>
     <div><span class="pill ${stCls(a.stage)}">${esc(a.stage)}</span></div>
     <div class="c-owner ell">${own(a).length?esc(ownTxt(a)):'<span class="unassigned">No owner</span>'}</div>
     <div class="c-next ell muted">${esc(a.nextAction||"")}</div>
@@ -496,7 +511,7 @@ function employeesHTML(){
   ${excelPanel()}
   <p class="muted" style="max-width:66ch;margin-top:14px;font-size:13px">Reset PIN signs that person out everywhere and lets them make a new PIN at their next sign in. Removing someone stops them signing in but keeps everything they logged.</p>`;}
 /* ---------- drawer ---------- */
-function kindLabel(k){return({employee:"Employee change",pinreset:"PIN reset",reminder:"Reminder set",followup:"Follow-up done",call:"Call",email:"Email",meeting:"Meeting",deal:"Deal",contact:"Contact added",visit:"Site visit",note:"Note",handoff:"Handoff",converted:"Became client",reverted:"Back to prospect",stage:"Stage change",owner:"Owner change",research:"Research",created:"Added",next:"Next step",accepted:"Handoff accepted",edit:"Details edited"})[k]||k}
+function kindLabel(k){return({lane:"Lane",employee:"Employee change",pinreset:"PIN reset",reminder:"Reminder set",followup:"Follow-up done",call:"Call",email:"Email",meeting:"Meeting",deal:"Deal",contact:"Contact added",visit:"Site visit",note:"Note",handoff:"Handoff",converted:"Became client",reverted:"Back to prospect",stage:"Stage change",owner:"Owner change",research:"Research",created:"Added",next:"Next step",accepted:"Handoff accepted",edit:"Details edited"})[k]||k}
 function ownerOpts(sel){return `<option value="">No owner</option>`+[...new Set([...S.team,sel].filter(Boolean))].map(n=>`<option ${n===sel?"selected":""}>${esc(n)}</option>`).join("")}
 
 function renderDrawer(){
@@ -530,6 +545,7 @@ function renderDrawer(){
     const ce=canEdit(a),dis=ce?"":"disabled";
     head.innerHTML=`<div class="d-top"><h2>${esc(a.company)}</h2><span class="pill type-${a.type}">${a.type==="client"?"Client":"Prospect"}</span><button class="btn ghost" data-act="close" aria-label="Close">Close</button></div>
     <div class="d-meta">
+      <label for="dLane"><span class="lbl">Lane</span><select id="dLane" class="${laneOK(a)?"":"needs"}" ${dis}><option value="">Pick a lane</option>${LANES.map(l=>`<option ${l===a.lane?"selected":""}>${l}</option>`).join("")}</select>${a.lane&&!a.laneConfirmed&&ce?`<button type="button" class="linkish" data-act="confirmlane" style="font-size:12px">Confirm suggested</button>`:""}</label>
       <label for="dStage"><span class="lbl">Stage</span><select id="dStage" ${dis}>${STAGES.map(s=>`<option ${s===a.stage?"selected":""}>${s}</option>`).join("")}</select></label>
       <div class="ownbox"><span class="lbl">Owners</span><div class="chips">${own(a).map(n=>`<span class="chip">${esc(n)}${ce?`<button type="button" data-unown="${esc(n)}" aria-label="Remove ${esc(n)}">×</button>`:""}</span>`).join("")||'<span class="unassigned">No owner</span>'}${ce&&S.team.some(n=>!owns(a,n))?`<select id="dOwnerAdd" aria-label="Add owner"><option value="">+ Add owner</option>${S.team.filter(n=>!owns(a,n)).map(n=>`<option>${esc(n)}</option>`).join("")}</select>`:""}</div></div>
       ${a.lastVisit?`<div><span class="lbl">Last visit</span><div class="mono">${fmtDate(a.lastVisit)}</div></div>`:""}
@@ -562,7 +578,7 @@ function bodyHTML(a){
   <section><h3 style="margin-bottom:10px">Account</h3><dl class="facts">
     ${a.type==="client"?factRow("Services",(a.services||[]).join(", ")):""}
     ${factRow("Why",a.why)}${factRow("Contact",a.contact)}${factRow("Phone",a.phone,1)}${factRow("Address",a.address,1)}${factRow("Website",a.website)}
-    ${factRow("List",a.list)}${factRow("Sector",a.sector)}${factRow("Tier",a.tier)}${factRow("Lane",a.lane)}${factRow("Route in",a.routeIn)}${factRow("Risk",a.risk)}
+    ${factRow("List",a.list)}${factRow("Sector",a.sector)}${factRow("Tier",a.tier)}${factRow("Lane research",a.laneNote)}${factRow("Route in",a.routeIn)}${factRow("Risk",a.risk)}
     ${factRow("Local evidence",a.localEvidence)}${factRow("Latest note",a.latestNote)}${factRow("Wendy's notes",a.wendyNotes)}${factRow("Research",a.research)}${factRow("Verified",a.verifiedAsOf)}
   </dl></section>
   <section><div class="sechead"><h3>People</h3><button class="btn" data-comp="contact" ${canEdit(a)?"":"disabled"}>Add contact</button></div>${(a.people||[]).length?`<div class="people">${a.people.map(p=>`<div class="person"><b>${esc(p.name)}</b><span class="muted">${esc([p.title,p.role].filter(Boolean).join(" · "))}</span>${p.phone?`<span class="mono">${esc(p.phone)} <button type="button" class="copy" data-copy="${esc(p.phone)}">Copy</button></span>`:""}${p.email?`<span class="mono">${esc(p.email)} <button type="button" class="copy" data-copy="${esc(p.email)}">Copy</button></span>`:""}</div>`).join("")}</div>`:'<p class="muted">No contacts on file yet.</p>'}</section>
@@ -577,7 +593,7 @@ function detailsForm(a,id){
     <div class="row2"><label><span class="lbl">Sector</span><input type="text" id="${id}_sector" value="${esc(a.sector||"")}"></label>
     <label><span class="lbl">Website</span><input type="text" id="${id}_website" value="${esc(a.website||"")}"></label></div>
     <div class="row2"><label><span class="lbl">List</span><select id="${id}_list">${[...new Set([...lists(),"Added in CRM",a.list].filter(Boolean))].map(l=>`<option ${l===(a.list||"Added in CRM")?"selected":""}>${esc(l)}</option>`).join("")}</select></label>
-    ${id==="newForm"?`<label><span class="lbl">Owner</span><select id="${id}_owner">${ownerOpts(S.me)}</select></label>`:""}</div>
+    ${id==="newForm"?`<label><span class="lbl">Owner</span><select id="${id}_owner">${ownerOpts(S.me)}</select></label><label><span class="lbl">Lane</span><select id="${id}_lane"><option value="">Pick later</option>${LANES.map(l=>`<option>${l}</option>`).join("")}</select></label>`:""}</div>
     <label><span class="lbl">Why they fit</span><textarea id="${id}_why">${esc(a.why||"")}</textarea></label>
     <div class="end"><button type="button" class="btn ghost" data-act="${id==="newForm"?"close":"cancel"}">Cancel</button><button class="btn pri">${id==="newForm"?"Add prospect":"Save details"}</button></div></form>`;}
 
@@ -587,7 +603,7 @@ function openComposer(kind,preset){
   const who=`<label><span class="lbl">By</span><select id="cBy">${ownerOpts(S.me)}</select></label>`;
   const end=(lbl,cls="pri")=>`<div class="end"><button type="button" class="btn ghost" data-act="cancel">Cancel</button><button class="btn ${cls}">${lbl}</button></div>`;
   const F={
-    touch:`<h3>${preset==="visit"?"Log site visit":"Log call, email or meeting"}</h3><div class="row2"><label><span class="lbl">Type</span><select id="cType">${TOUCH_TYPES.map(([k,l])=>`<option value="${k}" ${k===preset?"selected":""}>${l}</option>`).join("")}</select></label>
+    touch:`<h3>${preset==="visit"?"Log site visit":"Log call, email or meeting"}</h3>${laneOK(a)?"":`<label class="needlane"><span class="lbl">Pick the lane first: which approach are you taking?</span><select id="cLane" required><option value="">Choose</option>${LANES.map(l=>`<option ${l===a.lane?"selected":""}>${l}</option>`).join("")}</select>${a.laneNote?`<span class="muted" style="font-size:12px">Research note: ${esc(a.laneNote)}</span>`:""}</label>`}<div class="row2"><label><span class="lbl">Type</span><select id="cType">${TOUCH_TYPES.map(([k,l])=>`<option value="${k}" ${k===preset?"selected":""}>${l}</option>`).join("")}</select></label>
       <label><span class="lbl">Date</span><input type="date" id="cDate" value="${today()}" required></label>${who}</div>
       <label><span class="lbl">Who you talked to</span><input type="text" id="cMet" list="cMetList" placeholder="Name and title"><datalist id="cMetList">${(a.people||[]).map(p=>`<option value="${esc(p.name)}">`).join("")}</datalist></label>
       <label><span class="lbl">Notes</span><textarea id="cText" placeholder="What you saw, what they need, what was promised"></textarea></label>${remFields(preset==="visit",a)}${end("Save")}`,
@@ -628,6 +644,7 @@ async function submitComposer(){
   if(!S.me){toast("Sign in again.");return}
   try{
   if(k==="touch"){const d=v("cDate"),ty=v("cType");if(!d)return toast("Enter the date.");
+    if(!laneOK(a)){const ln=v("cLane");if(!ln)return toast("Pick the lane before logging contact.");await setLane(a,ln);}
     await logTouch(a,ty,d,v("cText"),v("cMet"),by);await addReminderFromForm(a);toast((TOUCH_TYPES.find(x=>x[0]===ty)||[,"Activity"])[1]+" logged"+(document.getElementById("rOn")&&document.getElementById("rOn").checked?" and reminder set":""));}
   if(k==="remind"){if(!v("rDue"))return toast("Pick a date for the reminder.");await addReminderFromForm(a);toast("Reminder set");}
   if(k==="note"){const t=v("cText");if(!t)return toast("Write the note first.");await logTouch(a,"note",today(),t,"",S.me);toast("Note saved");}
@@ -663,6 +680,9 @@ async function submitComposer(){
   closeComposer();
   }catch(e){}
 }
+async function setLane(a,ln){
+  await patchAccount(a.id,{lane:ln,laneConfirmed:true,laneSetBy:S.me,laneSetAt:nowISO()});
+  await logActivity({accountId:a.id,kind:"lane",text:a.lane&&a.lane!==ln?`${a.lane}${a.laneConfirmed?"":" (suggested)"} to ${ln}`:`${ln} confirmed`});}
 async function logTouch(a,kind,date,text,met,by){
   await logActivity({accountId:a.id,kind,date,text,contactMet:met||"",by:by||S.me});
   const p={};if(!a.lastTouch||date>a.lastTouch)p.lastTouch=date;if(kind==="visit"&&(!a.lastVisit||date>a.lastVisit))p.lastVisit=date;
@@ -672,6 +692,7 @@ async function submitQuick(){
   const name=$("#qCo").value.trim(),a=accts().find(x=>x.company.toLowerCase()===name.toLowerCase());
   if(!a)return toast("Pick a company from the list, or add it as a prospect first.");
   if(!canEdit(a))return toast("Only owners and admins can log on "+a.company+".");
+  if(!laneOK(a)&&$("#qType").value!=="note"){const ty=$("#qType").value;S.open=a.id;render();setTimeout(()=>openComposer("touch",ty==="visit"?"visit":"call"),50);return toast("Pick a lane for "+a.company+" first.")}
   if(!S.me){toast("Pick your name at the top first.");return}
   const t=$("#qText").value.trim();if(!t)return toast("Write what happened.");
   try{await logTouch(a,$("#qType").value,$("#qDate").value||today(),t,"",S.me);toast("Logged to "+a.company);S.open=null;render()}catch(e){}}
@@ -685,7 +706,7 @@ async function addProspect(){
   const slug=p.company.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60)||"account";
   let id=slug,n=2;while(S.accounts.has(id))id=slug+"-"+n++;
   const owner=document.getElementById("newForm_owner").value;
-  try{await queue("accounts/"+id,()=>db.doc("accounts/"+id).set({...p,...ownPatch(owner?[owner]:[]),stage:"Not researched",type:"prospect",order:999,createdAt:today(),createdBy:S.me||"",updatedAt:nowISO()}));
+  try{await queue("accounts/"+id,()=>db.doc("accounts/"+id).set({...p,...ownPatch(owner?[owner]:[]),lane:document.getElementById("newForm_lane").value,laneConfirmed:!!document.getElementById("newForm_lane").value,stage:"Not researched",type:"prospect",order:999,createdAt:today(),createdBy:S.me||"",updatedAt:nowISO()}));
     await logActivity({accountId:id,kind:"created",text:"Added to the CRM"});
     S.open=id;toast("Prospect added");render();}catch(e){}
 }
@@ -698,7 +719,7 @@ document.addEventListener("click",async e=>{
   if(t.dataset.open){S.open=t.dataset.open;S.composer=null;render();return}
   if(t.dataset.unown){const a=S.accounts.get(S.open),n=t.dataset.unown;if(!a)return;if(!canEdit(a))return toast("Only owners and admins can change owners.");try{await patchAccount(a.id,ownPatch(own(a).filter(x=>x!==n)));await logActivity({accountId:a.id,kind:"owner",text:`Removed ${n} as owner`});toast(n+" removed")}catch(err){}return}
   if(t.dataset.comp){openComposer(t.dataset.comp,t.dataset.preset);return}
-  if(t.dataset.stage){S.f={...S.f,stage:t.dataset.stage,list:"",owner:"",q:""};saveF();location.hash="prospects";return}
+  if(t.dataset.stage){S.f={...S.f,stage:t.dataset.stage,list:"",owner:"",lane:"",q:""};saveF();location.hash="prospects";return}
   if(t.dataset.goto){location.hash=t.dataset.goto;return}
   if(t.dataset.sort){if(S.view==="mine")return;S.f.dir=S.f.sort===t.dataset.sort?-S.f.dir:1;S.f.sort=t.dataset.sort;saveF();$("#view").innerHTML="";render();return}
   if(t.dataset.copy){const v=t.dataset.copy;try{await navigator.clipboard.writeText(v);toast("Copied")}catch(err){const r=document.createRange();r.selectNodeContents(t.parentNode);const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Selected. Press Ctrl+C to copy.")}return}
@@ -713,12 +734,13 @@ document.addEventListener("click",async e=>{
   if(act==="dlxl"){t.disabled=true;t.textContent="Building…";try{const r=await window.crmFetch("/api/export");if(!r.ok){let j={};try{j=await r.json()}catch(x){}throw new Error(j.error||"Export failed")}
     const b=await r.blob(),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=`Vanguard Prospect List ${today()}.xlsx`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast("Excel downloaded")}
     catch(err){toast(err.message||"Export failed")}t.disabled=false;t.textContent="Download Excel";return}
+  if(act==="confirmlane"){const a=S.accounts.get(S.open);if(a&&a.lane&&canEdit(a)){try{await setLane(a,a.lane);toast("Lane confirmed: "+a.lane)}catch(err){}}return}
   if(act==="signout"){window.crmSignOut&&window.crmSignOut()}
   if(act==="pin"){window.crmChangePin&&window.crmChangePin()}
   if(act==="newperson"){const f=$("#personForm");f.hidden=false;$("#npEmail").focus()}
   if(act==="cancelperson"){const f=$("#personForm");f.hidden=true;f.reset();$("#npMatch").textContent=""}
   if(act==="quicklog"){if(!S.canWrite)return toast("You have view access only.");S.open="__log";render()}
-  if(act==="clear"){S.f={...S.f,q:"",list:"",stage:"",owner:""};saveF();$("#view").innerHTML="";render()}
+  if(act==="clear"){S.f={...S.f,q:"",list:"",stage:"",owner:"",lane:""};saveF();$("#view").innerHTML="";render()}
   if(act==="accept"){const a=S.accounts.get(S.open);try{await patchAccount(a.id,{handoff:{...a.handoff,accepted:true,acceptedAt:nowISO()}});await logActivity({accountId:a.id,kind:"accepted",text:S.me+" accepted the lead"});toast("Lead accepted")}catch(err){}}
 });
 document.addEventListener("keydown",e=>{
@@ -743,10 +765,11 @@ document.addEventListener("change",async e=>{
   if(id==="auWho"||id==="auKind"){S.au[id==="auWho"?"who":"kind"]=e.target.value;render();return}
   if(e.target.dataset.admin){const id=e.target.dataset.admin,on=e.target.checked,u=S.users.find(x=>x.id===id);try{await db.doc("users/"+id).update({admin:on,adminChangedBy:S.me,adminChangedAt:nowISO()});await logActivity({accountId:"",kind:"employee",text:`${u?u.name:id} ${on?"made an admin":"is no longer an admin"}`,system:true});toast(on?(u?u.name:"")+" is now an admin":(u?u.name:"")+" is no longer an admin")}catch(err){e.target.checked=!on;toast(errText(err))}return}
   if(id==="meSel"){S.me=e.target.value;ls.set("vcrm.me",S.me);render();return}
-  if(id==="fList"||id==="fStage"||id==="fOwner"){S.f[{fList:"list",fStage:"stage",fOwner:"owner"}[id]]=e.target.value;saveF();$("#view").innerHTML="";render();return}
+  if(id==="fList"||id==="fStage"||id==="fOwner"||id==="fLane"){S.f[{fList:"list",fStage:"stage",fOwner:"owner",fLane:"lane"}[id]]=e.target.value;saveF();$("#view").innerHTML="";render();return}
   if(e.target.dataset.dealstage){const did=e.target.dataset.dealstage,d=S.deals.find(x=>x.id===did),ns=e.target.value;if(!d)return;
     try{await queue("deals/"+did,()=>db.doc("deals/"+did).update({stage:ns,updatedAt:nowISO()}));await logActivity({accountId:d.accountId,kind:"deal",text:`${d.name}: ${d.stage} to ${ns}`,system:true});toast("Deal set to "+ns)}catch(err){}return}
   const a=S.accounts.get(S.open);if(!a)return;
+  if(id==="dLane"){const ln=e.target.value;if(!ln){e.target.value=a.lane||"";return toast("Pick one of the three lanes.")}try{await setLane(a,ln);toast("Lane set to "+ln)}catch(err){}return}
   if(id==="dStage"){const s=e.target.value;if(s==="Current client"&&a.type!=="client"){e.target.value=a.stage;openComposer("convert");return}
     try{await patchAccount(a.id,{stage:s});await logActivity({accountId:a.id,kind:"stage",text:`${a.stage} to ${s}`});toast("Stage set to "+s);if(s==="Won"&&a.type!=="client")openComposer("convert")}catch(err){}}
   if(id==="dOwnerAdd"){const o=e.target.value;if(!o)return;const next=[...own(a),o];try{await patchAccount(a.id,ownPatch(next));await logActivity({accountId:a.id,kind:"owner",text:`Added ${o} as owner`});toast(o+" added as owner")}catch(err){}return}
@@ -795,7 +818,7 @@ function boardHTML(){
   return `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><h2>Board</h2><label class="chk"><input type="checkbox" id="bMine" ${S.boardMine?"checked":""} ${S.me?"":"disabled"}> Only mine</label><label class="chk"><input type="checkbox" id="bAll" ${S.boardAll?"checked":""}> Show Parked and Lost</label><span class="muted" style="font-size:13px">Drag a card to change its stage.</span></div>
   <div class="board">${cols.map(s=>{const c=p.filter(a=>a.stage===s).sort((x,y)=>dealSum(y.id)-dealSum(x.id)||listRank(x.list)-listRank(y.list));const tot=c.reduce((n,a)=>n+dealSum(a.id),0);
     return `<div class="col" data-col="${esc(s)}"><div class="colhead"><span class="pill ${stCls(s)}">${esc(s)}</span><span class="mono muted">${c.length}${tot?" · "+money(tot):""}</span></div>
-    <div class="cards">${c.slice(0,60).map(a=>{const ds=dealSum(a.id),rs=remsFor(a.id);return `<div class="card" draggable="${canEdit(a)}" data-card="${esc(a.id)}" data-open="${esc(a.id)}" tabindex="0"><b>${esc(a.company)}</b><span class="sub">${own(a).length?esc(ownTxt(a)):'<span class="unassigned">No owner</span>'}</span>${ds||rs.length?`<span class="cardmeta">${ds?`<span class="mono">${money(ds)}/yr</span>`:""}${rs.length?`<span class="mono ${rs[0].due<today()?"due-over":""}">${esc(rs[0].type)} ${fmtDate(rs[0].due)}</span>`:""}</span>`:""}</div>`}).join("")}${c.length>60?`<div class="empty">${c.length-60} more in Prospects</div>`:""}</div></div>`}).join("")}</div>`;}
+    <div class="cards">${c.slice(0,60).map(a=>{const ds=dealSum(a.id),rs=remsFor(a.id);return `<div class="card" draggable="${canEdit(a)}" data-card="${esc(a.id)}" data-open="${esc(a.id)}" tabindex="0"><b>${laneChip(a)} ${esc(a.company)}</b><span class="sub">${own(a).length?esc(ownTxt(a)):'<span class="unassigned">No owner</span>'}</span>${ds||rs.length?`<span class="cardmeta">${ds?`<span class="mono">${money(ds)}/yr</span>`:""}${rs.length?`<span class="mono ${rs[0].due<today()?"due-over":""}">${esc(rs[0].type)} ${fmtDate(rs[0].due)}</span>`:""}</span>`:""}</div>`}).join("")}${c.length>60?`<div class="empty">${c.length-60} more in Prospects</div>`:""}</div></div>`}).join("")}</div>`;}
 document.addEventListener("dragstart",e=>{const c=e.target.closest&&e.target.closest("[data-card]");if(!c)return;e.dataTransfer.setData("text/plain",c.dataset.card);e.dataTransfer.effectAllowed="move";c.classList.add("dragging")});
 document.addEventListener("dragend",e=>{document.querySelectorAll(".dragging,.col.over").forEach(x=>x.classList.remove("dragging","over"))});
 document.addEventListener("dragover",e=>{const col=e.target.closest&&e.target.closest("[data-col]");if(!col)return;e.preventDefault();document.querySelectorAll(".col.over").forEach(x=>x!==col&&x.classList.remove("over"));col.classList.add("over")});
