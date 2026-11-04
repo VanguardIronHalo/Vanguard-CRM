@@ -14,6 +14,10 @@ Matthew Lambert, Vice President, Vanguard Security LLC
 - **PINs** are hashed on the server (PBKDF2, 150,000 rounds) and kept where no browser can read them. Five wrong PINs lock a name for 15 minutes. Admins reset PINs from the Employees page.
 - **Audit log:** every change is recorded with who made it, and entries can't be edited or deleted.
 
+### Permanent record
+
+The original Excel prospect list gets imported once at setup and is retired after that. From then on, Firebase is the master record and it only grows. Nothing is ever deleted, by anyone, including admins, and the database rules enforce this. Records close out instead: accounts move to Parked or Lost, deals to Lost, follow-ups get marked done, employees get marked removed. Every visit, call, note, stage change, owner change, handoff and edit is logged with who did it and when. Detail edits record the old and new values. Download Excel is still there, but it's a snapshot for reports or a backup, not something to edit.
+
 ### Files
 
 | Path | What it is |
@@ -63,7 +67,16 @@ Invoke-RestMethod -Method Post "https://vanguardcrm.netlify.app/api/setup?key=YO
 
 You should see 11 employees and 233 accounts added. Running it twice is safe. Then **delete `CRM_SETUP_KEY`** in Netlify and redeploy, which turns setup off.
 
-### 4. Sign in
+### 4. Turn on backups
+
+Since Firebase is the only master copy, give it backups. In the Firebase console, open Firestore, then Disaster recovery:
+
+1. **Point in time recovery: on.** This lets you roll the database back to any minute in the last 7 days, which covers a bad bulk change or a mistake.
+2. **Scheduled backups: daily, kept 14 weeks.** These are full copies you can restore from if something bigger goes wrong.
+
+Both need the project on the Blaze (pay as you go) plan. At this data size the cost is pennies a month.
+
+### 5. Sign in
 
 Open vanguardcrm.netlify.app, pick your name and make your PIN. You start as the only admin. Click the Vanguard logo to open the admin menu, then Employees, to make others admins, add or remove people, reset PINs, and download Excel.
 

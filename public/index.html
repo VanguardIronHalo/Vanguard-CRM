@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Vanguard CRM</title>
-<link rel="icon" type="image/png" href="/vanguard-v.png">
-<link rel="apple-touch-icon" href="/vanguard-v.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#2E3192">
 <style>
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -48,7 +48,7 @@ button{cursor:pointer}
 header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
 .bar-in{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:10px;max-width:1400px;margin:0 auto}
 .mark{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:21px;letter-spacing:.06em;text-transform:uppercase}
-.mark img{display:block;height:40px;width:auto;background:#FFFFFF;border-radius:6px;padding:3px 5px;box-sizing:content-box}
+.mark img{display:block;height:36px;width:auto;background:#000000;border-radius:8px;padding:5px 7px;box-sizing:content-box}
 .mark small{font-family:var(--f-body);font-weight:400;font-size:13px;letter-spacing:0;text-transform:none;color:var(--muted)}
 nav.tabs{display:flex;gap:2px;flex-wrap:wrap}
 nav.tabs a{padding:7px 12px;border-radius:6px;color:var(--muted);text-decoration:none;font-family:var(--f-display);font-weight:600;font-size:16px;letter-spacing:.05em;text-transform:uppercase}
@@ -261,7 +261,7 @@ a.mark{text-decoration:none;color:inherit;border-radius:8px}
 </style>
 
 <header class="bar"><div class="bar-in wrap">
-  <a class="mark" href="#home" id="logo" aria-label="Vanguard CRM home"><img src="/vanguard-v.png" alt="Vanguard" width="50" height="40"><span>Vanguard CRM</span></a>
+  <a class="mark" href="#home" id="logo" aria-label="Vanguard CRM home"><img src="/vanguard-v.svg" alt="Vanguard" width="48" height="36"><span>Vanguard CRM</span></a>
   <nav class="tabs" id="tabs"></nav>
   <div class="gsearch"><input type="search" id="gq" placeholder="Search companies, people, phone numbers" aria-label="Search everything" autocomplete="off"><div class="gres" id="gres" hidden></div></div>
   <div class="whoami" id="whoami"></div>
@@ -655,7 +655,11 @@ async function submitComposer(){
     await patchAccount(a.id,{type:"prospect",stage:a.priorStage&&a.priorStage!=="Current client"?a.priorStage:"Contacted"});
     await logActivity({accountId:a.id,kind:"reverted",text:t});toast("Moved back to prospects");}
   if(k==="edit"){const p=readDetails("editForm");if(!p.company)return toast("Company name is required.");
-    await patchAccount(a.id,p);await logActivity({accountId:a.id,kind:"edit",text:"Account details updated"});toast("Details saved");}
+    const lbl={company:"Company",contact:"Contact",phone:"Phone",address:"Address",sector:"Sector",website:"Website",list:"List",why:"Why they fit"};
+    const ch=Object.keys(p).filter(k=>String(a[k]||"")!==String(p[k]||""));if(!ch.length)return toast("Nothing changed.");
+    const before={};ch.forEach(k=>before[k]=a[k]||"");
+    await patchAccount(a.id,Object.fromEntries(ch.map(k=>[k,p[k]])));
+    await logActivity({accountId:a.id,kind:"edit",text:ch.map(k=>`${lbl[k]||k}: "${before[k]||"(blank)"}" to "${p[k]||"(blank)"}"`).join("; "),before,after:Object.fromEntries(ch.map(k=>[k,p[k]]))});toast("Details saved");}
   closeComposer();
   }catch(e){}
 }
@@ -886,7 +890,7 @@ window.startApp=function(adapter,me){
 
 <div id="login" class="login" role="dialog" aria-label="Sign in">
   <form class="login-card" id="loginForm" autocomplete="off">
-    <img src="/vanguard-v.png" alt="Vanguard" class="login-logo">
+    <img src="/vanguard-v.svg" alt="Vanguard" class="login-logo">
     <h1 class="login-title">Vanguard CRM</h1>
     <p class="muted login-sub" id="lgSub">Sign in with your name and PIN.</p>
     <label class="lg-field" id="lgNameRow"><span class="lbl">Your name</span><select id="lgName" required><option value="">Loading names</option></select></label>
@@ -902,7 +906,7 @@ window.startApp=function(adapter,me){
 <style>
 .login{position:fixed;inset:0;z-index:60;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px));overflow-y:auto}
 .login-card{width:min(380px,100%);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px 24px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}
-.login-logo{width:72px;height:auto;background:#FFFFFF;border-radius:10px;padding:6px 8px;align-self:center}
+.login-logo{width:96px;height:auto;background:#000000;border-radius:14px;padding:10px 14px;align-self:center}
 .login-title{text-align:center;font-size:26px;text-transform:uppercase;letter-spacing:.08em}
 .login-sub{text-align:center;margin:-6px 0 4px}
 .lg-field{display:flex;flex-direction:column;gap:5px}

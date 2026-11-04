@@ -2,6 +2,8 @@ rules_version = '2';
 // Vanguard CRM rules for its own Firebase project (vanguard-crm).
 // Everyone signed in sees every account. Only an account's owners and admins can change it.
 // An account with no owners can be claimed by whoever adds themselves.
+// This database is the permanent record: nothing is ever deleted, by anyone.
+// Accounts close as Parked or Lost, deals as Lost, follow-ups as done, employees as removed.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -43,14 +45,14 @@ service cloud.firestore {
       allow read: if crm();
       allow create: if crm();
       allow update: if crm() && canEditAccount(resource.data);
-      allow delete: if crmAdmin();
+      allow delete: if false;
     }
 
     match /crm_deals/{id} {
       allow read: if crm();
       allow create: if crm() && canEditAccountId(request.resource.data.accountId);
       allow update: if crm() && canEditAccountId(resource.data.accountId);
-      allow delete: if crmAdmin();
+      allow delete: if false;
     }
 
     // Follow-ups. You can set one for yourself or a teammate; you can close the ones you made or that are yours.
@@ -58,7 +60,7 @@ service cloud.firestore {
       allow read: if crm();
       allow create: if crm() && request.resource.data.createdBy == me();
       allow update: if crm() && (crmAdmin() || resource.data.assignee == me() || resource.data.createdBy == me());
-      allow delete: if crmAdmin();
+      allow delete: if false;
     }
 
     // Audit log. Add entries only as yourself. Nobody edits or deletes.
