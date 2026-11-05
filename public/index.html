@@ -7,6 +7,11 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#2E3192">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vanguard CRM">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0;font-size:14px}
@@ -1086,6 +1091,7 @@ $("#loginForm").addEventListener("submit",async e=>{
   }catch(err){L.err.textContent="Sign in failed. Check your connection and try again."}
   L.go.disabled=false;});
 
+if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(()=>{})}
 window.crmSignOut=async()=>{await signOut(auth);location.reload()};
 window.crmChangePin=()=>showLogin("change");
 
