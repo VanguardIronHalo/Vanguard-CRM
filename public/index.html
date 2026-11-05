@@ -6,7 +6,7 @@
 <title>Vanguard CRM</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#2E3192">
+<meta name="theme-color" content="#2850E6">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -26,7 +26,7 @@ img{max-width:100%}
 /* Layout: command bar on top, list workspace below, account record slides in from the right (full screen on phones) */
 :root{
   --bg:#F3F4F9; --surface:#FFFFFF; --sunk:#E9EBF4; --ink:#0B0C1A; --muted:#5A5E7A; --line:#D9DCEA;
-  --brand:#2E3192; --brand-ink:#FFFFFF; --brand-soft:#E6E7F6;
+  --brand:#2850E6; --brand-ink:#FFFFFF; --brand-soft:#E6E7F6;
   --ok:#1B7F4B; --ok-soft:#E1F3E9; --warn:#A35F00; --warn-soft:#FBEFD9; --bad:#B42318; --bad-soft:#FBE4E1;
   --f-display:"Barlow Condensed","Arial Narrow",Calibri,sans-serif;
   --f-body:Calibri,Carlito,"Segoe UI",system-ui,sans-serif;
@@ -272,8 +272,8 @@ select.needs{border-color:var(--warn);box-shadow:0 0 0 2px var(--warn-soft)}
 
 /* ===== v2: brand bar, simpler controls, easier on phones ===== */
 body{font-size:15px}
-header.bar{background:linear-gradient(100deg,#2E3192 0%,#1A1C5C 45%,#000000 100%);border-bottom:0;color:#FFFFFF}
-body::before{background:#2E3192}
+header.bar{background:linear-gradient(100deg,#2850E6 0%,#2850E6 30%,#1A2F8F 65%,#000000 100%);border-bottom:0;color:#FFFFFF}
+body::before{background:#2850E6}
 .mark,.mark span{color:#FFFFFF}
 .mark img{background:#0B0E2B;box-shadow:0 0 0 1px rgba(255,255,255,.18)}
 nav.tabs a{color:rgba(255,255,255,.78)}
@@ -289,7 +289,7 @@ nav.tabs a .dot{background:#FF5A4E;color:#FFFFFF}
 .usermenu summary{list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 8px 4px 4px;border-radius:999px;color:#FFFFFF}
 .usermenu summary::-webkit-details-marker,.more summary::-webkit-details-marker{display:none}
 .usermenu summary:hover{background:rgba(255,255,255,.1)}
-.avatar{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#FFFFFF;color:#2E3192;font-weight:700;font-size:13px}
+.avatar{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#FFFFFF;color:#2850E6;font-weight:700;font-size:13px}
 .uname{font-weight:700;font-size:14px}
 .menu{position:absolute;top:calc(100% + 6px);left:0;min-width:200px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:6px;display:flex;flex-direction:column;z-index:30}
 .menu.right{left:auto;right:0}
@@ -311,7 +311,7 @@ nav.tabs a .dot{background:#FF5A4E;color:#FFFFFF}
 .seg input:focus-visible+span{outline:2px solid var(--brand);outline-offset:2px}
 .lane{display:inline-flex;padding:0;border-radius:4px;overflow:hidden;vertical-align:1px;font-family:var(--f-mono);font-size:10.5px;line-height:1.5;background:none}
 .lane i{font-style:normal;padding:0 5px;color:#FFFFFF}
-.lane .l-vg{background:#2E3192}.lane .l-ih{background:#000000}.lane .l-q{background:var(--warn);color:#FFFFFF}
+.lane .l-vg{background:#2850E6}.lane .l-ih{background:#000000}.lane .l-q{background:var(--warn);color:#FFFFFF}
 .lane.sugg{opacity:.75;outline:none}
 .lane.none{border:1px dashed var(--warn);color:var(--warn);padding:0 5px}
 .filtbtn{display:none}
@@ -319,13 +319,13 @@ nav.tabs a .dot{background:#FF5A4E;color:#FFFFFF}
 .fab{display:inline-flex;align-items:center;gap:6px}
 .fab span[aria-hidden]{font-size:20px;line-height:1}
 /* sign in: brand blue and black, white words */
-#login.login{background:linear-gradient(180deg,#000000 0%,#0B0E2B 38%,#2E3192 100%)}
+#login.login{background:linear-gradient(180deg,#000000 0%,#0B0E2B 30%,#2850E6 85%,#2850E6 100%)}
 #login .login-card{background:transparent;border:0;box-shadow:none;color:#FFFFFF}
 #login .login-logo{background:transparent;padding:0;width:280px}
 #login .muted,#login .lbl{color:rgba(255,255,255,.85)}
 #login .lg-field select,#login .lg-field input{background:#FFFFFF;color:#0B0C1A;border:1px solid #FFFFFF}
 #login .lg-err{color:#FFB4AB}
-#login .lg-go{background:#FFFFFF;color:#2E3192;border-color:#FFFFFF}
+#login .lg-go{background:#FFFFFF;color:#2850E6;border-color:#FFFFFF}
 #login .lg-go:hover{background:#E6E7F6}
 #login .btn.ghost{color:#FFFFFF}
 #login .login-sub{font-size:16px}
