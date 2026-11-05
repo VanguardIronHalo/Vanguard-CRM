@@ -264,6 +264,88 @@ a.mark{text-decoration:none;color:inherit;border-radius:8px}
 .lane.none{background:transparent;color:var(--warn);border:1px dashed var(--warn)}
 select.needs{border-color:var(--warn);box-shadow:0 0 0 2px var(--warn-soft)}
 .needlane{display:flex;flex-direction:column;gap:4px;background:var(--warn-soft);padding:10px;border-radius:8px}
+
+/* ===== v2: brand bar, simpler controls, easier on phones ===== */
+body{font-size:15px}
+header.bar{background:linear-gradient(100deg,#2E3192 0%,#1A1C5C 45%,#000000 100%);border-bottom:0;color:#FFFFFF}
+body::before{background:#2E3192}
+.mark,.mark span{color:#FFFFFF}
+.mark img{background:#0B0E2B;box-shadow:0 0 0 1px rgba(255,255,255,.18)}
+nav.tabs a{color:rgba(255,255,255,.78)}
+nav.tabs a:hover{color:#FFFFFF;background:rgba(255,255,255,.08)}
+nav.tabs a[aria-current="page"]{background:rgba(255,255,255,.16);color:#FFFFFF}
+nav.tabs a .dot{background:#FF5A4E;color:#FFFFFF}
+.gsearch input{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);color:#FFFFFF}
+.gsearch input::placeholder{color:rgba(255,255,255,.7)}
+.gsearch input:focus{background:#FFFFFF;color:#0B0C1A}
+.gres{color:var(--ink)}
+.whoami{margin-left:auto;color:#FFFFFF}
+.usermenu{position:relative}
+.usermenu summary{list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 8px 4px 4px;border-radius:999px;color:#FFFFFF}
+.usermenu summary::-webkit-details-marker,.more summary::-webkit-details-marker{display:none}
+.usermenu summary:hover{background:rgba(255,255,255,.1)}
+.avatar{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#FFFFFF;color:#2E3192;font-weight:700;font-size:13px}
+.uname{font-weight:700;font-size:14px}
+.menu{position:absolute;top:calc(100% + 6px);left:0;min-width:200px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:6px;display:flex;flex-direction:column;z-index:30}
+.menu.right{left:auto;right:0}
+.menu button{border:0;background:none;text-align:left;padding:10px 12px;border-radius:6px;font-weight:700}
+.menu button:hover:not(:disabled){background:var(--brand-soft);color:var(--brand)}
+.menu button:disabled{opacity:.4}
+.menu-head{padding:8px 12px 10px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--line);margin-bottom:4px}
+.menu-head b{color:var(--ink);font-size:14px}
+.d-actions{gap:10px}
+.btn.big{padding:10px 18px;font-size:15px}
+.more{position:relative}
+.more summary{list-style:none;cursor:pointer}
+.more summary[aria-disabled="true"]{opacity:.45;pointer-events:none}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg label{display:block!important}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg span{display:inline-block;padding:8px 14px;border:1px solid var(--line);border-radius:999px;font-weight:700;cursor:pointer;background:var(--surface)}
+.seg input:checked+span{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.seg input:focus-visible+span{outline:2px solid var(--brand);outline-offset:2px}
+.lane{display:inline-flex;padding:0;border-radius:4px;overflow:hidden;vertical-align:1px;font-family:var(--f-mono);font-size:10.5px;line-height:1.5;background:none}
+.lane i{font-style:normal;padding:0 5px;color:#FFFFFF}
+.lane .l-vg{background:#2E3192}.lane .l-ih{background:#000000}.lane .l-q{background:var(--warn);color:#FFFFFF}
+.lane.sugg{opacity:.75;outline:none}
+.lane.none{border:1px dashed var(--warn);color:var(--warn);padding:0 5px}
+.filtbtn{display:none}
+.filtset{display:contents}
+.fab{display:inline-flex;align-items:center;gap:6px}
+.fab span[aria-hidden]{font-size:20px;line-height:1}
+/* sign in: brand blue and black, white words */
+#login.login{background:linear-gradient(180deg,#000000 0%,#0B0E2B 38%,#2E3192 100%)}
+#login .login-card{background:transparent;border:0;box-shadow:none;color:#FFFFFF}
+#login .login-logo{background:transparent;padding:0;width:280px}
+#login .muted,#login .lbl{color:rgba(255,255,255,.85)}
+#login .lg-field select,#login .lg-field input{background:#FFFFFF;color:#0B0C1A;border:1px solid #FFFFFF}
+#login .lg-err{color:#FFB4AB}
+#login .lg-go{background:#FFFFFF;color:#2E3192;border-color:#FFFFFF}
+#login .lg-go:hover{background:#E6E7F6}
+#login .btn.ghost{color:#FFFFFF}
+#login .login-sub{font-size:16px}
+@media (max-width:820px){
+  header.bar{position:static}
+  .bar-in{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"logo search user" "tabs tabs tabs";gap:10px 10px;padding-block:10px 8px}
+  .mark{grid-area:logo}.mark span{display:none}
+  .gsearch{grid-area:search;max-width:none}
+  .whoami{grid-area:user}
+  .uname{display:none}
+  nav.tabs{grid-area:tabs;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:0 max(16px,env(safe-area-inset-left,0px))}
+  nav.tabs::-webkit-scrollbar{display:none}
+  nav.tabs a{white-space:nowrap;font-size:15px}
+  .filtbtn{display:inline-flex}
+  .filtset{display:none;width:100%;gap:8px;flex-wrap:wrap}
+  .filtset.open{display:flex}
+  .filtset select{flex:1 1 140px}
+  .toolbar input[type=search]{flex:1 1 160px}
+  .btn{min-height:40px}
+  .d-actions .btn.big{flex:1 1 auto;justify-content:center}
+  .more{flex:1 1 auto}.more summary{width:100%;justify-content:center}
+  .fab .fab-l{display:none}
+  .fab{width:56px;height:56px;justify-content:center;padding:0}
+  .d-top h2{font-size:22px}
+}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:30;font-weight:700;max-width:90vw}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
 </style>
@@ -280,7 +362,7 @@ select.needs{border-color:var(--warn);box-shadow:0 0 0 2px var(--warn-soft)}
   <section id="view"></section>
 </main>
 
-<button class="btn pri fab" data-act="quicklog" id="fab">+ Quick log</button>
+<button class="btn pri fab" data-act="quicklog" id="fab" aria-label="Quick log"><span aria-hidden="true">+</span><span class="fab-l">Quick log</span></button>
 <div id="drawerHost"></div>
 <div class="toast" id="toast" hidden></div>
 
@@ -332,7 +414,7 @@ const own=a=>Array.isArray(a.owners)?a.owners:(a.owner?[a.owner]:[]);
 const owns=(a,n)=>!!n&&own(a).includes(n);
 const ownTxt=a=>own(a).join(", ");
 const canEdit=a=>!!a&&(isAdmin()||!own(a).length||owns(a,S.me));
-const laneChip=a=>a.lane?`<span class="lane lane-${a.lane===LANES[0]?"vg":a.lane===LANES[1]?"ih":"both"} ${a.laneConfirmed?"":"sugg"}" title="${esc(a.lane)}${a.laneConfirmed?"":" (suggested, owner hasn't confirmed)"}">${LANE_SHORT[a.lane]||esc(a.lane)}${a.laneConfirmed?"":"?"}</span>`:`<span class="lane none" title="No lane picked">No lane</span>`;
+const laneChip=a=>a.lane?`<span class="lane ${a.laneConfirmed?"":"sugg"}" title="${esc(a.lane)}${a.laneConfirmed?"":" (suggested, owner hasn't confirmed)"}">${a.lane!==LANES[1]?'<i class="l-vg">VG</i>':""}${a.lane!==LANES[0]?'<i class="l-ih">IH</i>':""}${a.laneConfirmed?"":'<i class="l-q">?</i>'}</span>`:`<span class="lane none" title="No lane picked">No lane</span>`;
 const laneOK=a=>!!(a.lane&&a.laneConfirmed);
 const canCloseRem=r=>isAdmin()||r.assignee===S.me||r.createdBy===S.me;
 const ownPatch=list=>({owners:list,owner:list[0]||"",assignedAt:nowISO()});
@@ -360,16 +442,17 @@ function remRow(r,showCo){const a=S.accounts.get(r.accountId),t=today(),over=r.d
     ${r.note?`<div class="sub">${esc(r.note)}</div>`:""}</div>
     <div class="rem-act"><a class="btn ghost" href="${esc(gcal(r))}" target="_blank" rel="noopener">Add to calendar</a>${canCloseRem(r)?`<button class="btn" data-done="${esc(r.id)}">Done</button>`:""}</div></div>`;}
 function remFields(on,a){const d=new Date(Date.now()+3*864e5).toLocaleDateString("en-CA");
-  return `<fieldset class="remset"><legend><label class="chk"><input type="checkbox" id="rOn" ${on?"checked":""}> Set a follow-up reminder</label></legend>
-    <div class="remfields" ${on?"":"hidden"}><div class="row2"><label><span class="lbl">Follow-up</span><select id="rType">${REM_TYPES.filter(x=>x!=="Catch up").map(x=>`<option>${x}</option>`).join("")}</select></label>
+  return `<fieldset class="remset"><legend><label class="chk"><input type="checkbox" id="rOn" ${on?"checked":""}> Set a follow-up</label></legend>
+    <div class="remfields" ${on?"":"hidden"}><div class="row2"><label><span class="lbl">What's next</span><select id="rType">${REM_TYPES.filter(x=>x!=="Catch up").map(x=>`<option>${x}</option>`).join("")}</select></label>
     <label><span class="lbl">Date</span><input type="date" id="rDue" value="${d}"></label><label><span class="lbl">Time (optional)</span><input type="time" id="rTime"></label></div>
-    <div class="row2"><label><span class="lbl">Remind</span><select id="rWho">${ownerOpts(S.me)}</select></label><label><span class="lbl">Note</span><input type="text" id="rNote" placeholder="Send Zoom link, bring pricing for 3 sites"></label></div></div></fieldset>`;}
+    <div class="row2"><label><span class="lbl">For</span><select id="rWho">${ownerOpts(S.me)}</select></label><label><span class="lbl">Note</span><input type="text" id="rNote" placeholder="Send Zoom link, bring pricing for 3 sites"></label></div></div></fieldset>`;}
 async function addReminderFromForm(a){
   const on=document.getElementById("rOn");if(on&&!on.checked)return;
   const v=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
   const r={accountId:a?a.id:"",type:v("rType")||"Follow-up call",due:v("rDue")||today(),time:v("rTime"),assignee:v("rWho")||S.me,note:v("rNote"),done:false,createdAt:nowISO(),createdBy:S.me};
   await db.collection("reminders").add(r).catch(e=>{toast(errText(e));throw e});
-  if(a)await logActivity({accountId:a.id,kind:"reminder",text:`${r.type} for ${r.assignee||"unassigned"} on ${fmtDate(r.due)}${r.time?" at "+r.time:""}${r.note?". "+r.note:""}`});}
+  if(a){await logActivity({accountId:a.id,kind:"reminder",text:`${r.type} for ${r.assignee||"unassigned"} on ${fmtDate(r.due)}${r.time?" at "+r.time:""}${r.note?". "+r.note:""}`});
+    if(!a.nextDate||r.due<=a.nextDate||a.nextDate<today())await patchAccount(a.id,{nextAction:r.type+(r.note?": "+r.note:""),nextDate:r.due});}}
 function ageTag(d){const b=d>=90?90:d>=60?60:30;return `<span class="age age-${b}">${d>=9999?"Never touched":d+" days"}</span>`}
 function allPeople(){const r=[];accts().forEach(a=>(a.people||[]).forEach((p,i)=>r.push({...p,accountId:a.id,company:a.company,i})));return r}
 const domainOf=u=>String(u||"").toLowerCase().replace(/^https?:\/\//,"").replace(/^www\./,"").split(/[\/?#]/)[0];
@@ -402,7 +485,8 @@ function render(){
   $("#tabs").innerHTML=VIEWS.map(([k,l])=>`<a href="#${k}" ${S.view===k?'aria-current="page"':""}>${l}${counts[k]!=null?`<span class="n">${counts[k]}</span>`:""}${k==="mine"&&dueN?`<span class="dot" title="${dueN} follow-up${dueN===1?"":"s"} due">${dueN}</span>`:""}</a>`).join("");
   if(isAdminView(S.view)&&!isAdmin()&&S.teamLoaded){location.hash="home";return}
   const wa=$("#whoami");
-  if(S.me&&!wa.dataset.me){wa.dataset.me=S.me;wa.innerHTML=`<span>Signed in as <b style="color:var(--ink)">${esc(S.me)}</b></span><button class="btn ghost" data-act="pin" style="padding:5px 8px;font-size:13px">Change PIN</button><button class="btn ghost" data-act="signout" style="padding:5px 8px;font-size:13px">Sign out</button>`}
+  if(S.me&&!wa.dataset.me){wa.dataset.me=S.me;const ini=S.me.split(/\s+/).map(x=>x[0]).join("").slice(0,2).toUpperCase();
+    wa.innerHTML=`<details class="usermenu"><summary aria-label="Account menu for ${esc(S.me)}"><span class="avatar">${esc(ini)}</span><span class="uname">${esc(S.me)}</span></summary><div class="menu right"><div class="menu-head">Signed in as<br><b>${esc(S.me)}</b></div><button data-act="pin">Change PIN</button><button data-act="signout">Sign out</button></div></details>`}
   const v=$("#view");
   if(!S.loaded&&!S.accounts.size){v.innerHTML=`<div class="panel"><h3>Loading accounts</h3><p class="muted">Prospects, clients and activity will appear here in a moment.</p></div>`;}
   else if(S.loaded&&!S.accounts.size&&!isAdminView(S.view)){v.innerHTML=`<div class="panel"><h3>No accounts yet</h3><p class="muted">Add your first prospect to start tracking owners, visits and notes.</p><p><button class="btn pri" data-act="new">Add prospect</button></p></div>`;}
@@ -471,12 +555,12 @@ function listShell(view){
   ${mine&&S.me?(()=>{const n=accts().filter(a=>owns(a,S.me)&&!laneOK(a)).length;return n?`<p class="rolock" style="margin-top:14px">${n} of your accounts need a lane confirmed. Open each one and pick Vanguard, Iron Halo, or Vanguard + Iron Halo before you reach out.</p>`:""})():""}
   ${mine?'<section class="panel" style="margin-top:14px"><h3>My follow-ups</h3><div id="remBox"></div></section>':""}
   <div class="toolbar">
-    <input type="search" id="q" placeholder="Search company, contact, sector, address" value="${esc(f.q)}">
-    ${mine?"":`<select id="fList" aria-label="List"><option value="">All lists</option>${lists().map(l=>`<option ${l===f.list?"selected":""}>${esc(l)}</option>`).join("")}</select>
+    <input type="search" id="q" placeholder="Search this list" value="${esc(f.q)}">
+    ${mine?"":`<button type="button" class="btn filtbtn" data-act="filters" aria-expanded="${S.showF?"true":"false"}">Filters${[f.list,f.stage,f.owner,f.lane].filter(Boolean).length?` (${[f.list,f.stage,f.owner,f.lane].filter(Boolean).length})`:""}</button><div class="filtset ${S.showF?"open":""}"><select id="fList" aria-label="List"><option value="">All lists</option>${lists().map(l=>`<option ${l===f.list?"selected":""}>${esc(l)}</option>`).join("")}</select>
     <select id="fLane" aria-label="Lane"><option value="">All lanes</option>${LANES.map(l=>`<option ${l===f.lane?"selected":""}>${l}</option>`).join("")}<option value="__none" ${f.lane==="__none"?"selected":""}>Lane not confirmed</option></select>
     <select id="fStage" aria-label="Stage"><option value="">All stages</option>${STAGES.map(s=>`<option ${s===f.stage?"selected":""}>${s}</option>`).join("")}</select>
     <select id="fOwner" aria-label="Owner"><option value="">All owners</option><option value="__none" ${f.owner==="__none"?"selected":""}>No owner</option>${S.team.map(n=>`<option ${n===f.owner?"selected":""}>${esc(n)}</option>`).join("")}</select>
-    ${(f.list||f.stage||f.owner||f.lane||f.q)?'<button class="btn ghost" data-act="clear">Clear</button>':""}`}
+    ${(f.list||f.stage||f.owner||f.lane||f.q)?'<button class="btn ghost" data-act="clear">Clear</button>':""}</div>`}
     <span class="count" id="count"></span>
   </div>
   <div class="table">
@@ -552,15 +636,16 @@ function renderDrawer(){
       ${a.type==="client"&&a.clientSince?`<div><span class="lbl">Client since</span><div class="mono">${fmtDate(a.clientSince)}</div></div>`:""}
     </div>
     <div class="d-actions">
-      <button class="btn pri" data-comp="touch" data-preset="visit" ${dis}>Log visit</button>
-      <button class="btn" data-comp="touch" data-preset="call" ${dis}>Log call or email</button>
-      <button class="btn" data-comp="note" ${dis}>Add note</button>
-      <button class="btn" data-comp="remind" ${dis}>Set reminder</button>
-      <button class="btn" data-comp="deal" ${dis}>Add deal</button>
-      <button class="btn" data-comp="next" ${dis}>Set next step</button>
-      <button class="btn" data-comp="handoff" ${dis}>Hand off</button>
-      ${a.type==="client"?`<button class="btn" data-comp="revert" ${dis}>Move back to prospect</button>`:`<button class="btn ok" data-comp="convert" ${dis}>Convert to client</button>`}
-      <button class="btn ghost" data-comp="edit" ${dis}>Edit details</button>
+      <button class="btn pri big" data-comp="touch" ${dis}>Log activity</button>
+      <button class="btn big" data-comp="remind" ${dis}>Follow-up</button>
+      <details class="more"><summary class="btn big" ${ce?"":'aria-disabled="true"'}>More</summary>
+        <div class="menu">
+          <button data-comp="contact" ${dis}>Add contact</button>
+          <button data-comp="deal" ${dis}>Add deal</button>
+          <button data-comp="handoff" ${dis}>Hand off</button>
+          ${a.type==="client"?`<button data-comp="revert" ${dis}>Move back to prospect</button>`:`<button data-comp="convert" ${dis}>Convert to client</button>`}
+          <button data-comp="edit" ${dis}>Edit details</button>
+        </div></details>
     </div>
     ${ce?(!own(a).length?`<p class="muted" style="margin:0;font-size:13px">No owner yet. Add yourself as an owner to claim it.</p>`:""):`<p class="rolock">You can view this account. Only its owners (${esc(ownTxt(a))}) and admins can change it. Ask one of them to add you or hand it off.</p>`}`;}
   $("#dBody").innerHTML=bodyHTML(a);
@@ -571,7 +656,7 @@ function bodyHTML(a){
   const ev=actFor(a.id),t=today();
   const ho=a.handoff&&!a.handoff.accepted?`<div class="handoff"><div><b>Handed off to ${esc(a.handoff.to)}</b> by ${esc(a.handoff.from||"Unassigned")} on ${fmtDate(a.handoff.at)}.${a.handoff.note?`<br>${esc(a.handoff.note)}`:""}</div>${S.me===a.handoff.to?`<button class="btn pri" data-act="accept">Accept lead</button>`:`<span class="lbl">Waiting on ${esc(a.handoff.to)}</span>`}</div>`:"";
   return `${ho}
-  <div class="nextbox"><div class="txt"><span class="lbl">Next step</span><div>${a.nextAction?esc(a.nextAction):'<span class="muted">None set</span>'}</div></div>${a.nextDate?`<span class="mono ${a.nextDate<t?"due-over":""}">${a.nextDate<t?"Overdue · ":""}${fmtDate(a.nextDate)}</span>`:""}</div>
+  <div class="nextbox"><div class="txt"><span class="lbl">Next</span><div>${a.nextAction?esc(a.nextAction):'<span class="muted">Nothing scheduled. Use Follow-up to set the next step.</span>'}</div></div>${a.nextDate?`<span class="mono ${a.nextDate<t?"due-over":""}">${a.nextDate<t?"Overdue · ":""}${fmtDate(a.nextDate)}</span>`:""}</div>
   ${(()=>{const ds=S.deals.filter(d=>d.accountId===a.id);return ds.length?`<section><div class="sechead"><h3>Deals</h3></div><div class="deals">${ds.map(d=>`<div class="deal"><div><b>${esc(d.name)}</b><div class="sub">${esc(d.stage)}${d.owner?" · "+esc(d.owner):""}${d.closeDate?" · close "+fmtDate(d.closeDate):""}</div></div><div style="text-align:right"><div class="v">${money(d.value)}<span class="muted" style="font-size:13px">/${d.term==="monthly"?"mo":"yr"}</span></div><select data-dealstage="${esc(d.id)}" aria-label="Deal stage" ${canEdit(a)?"":"disabled"}>${DEAL_STAGES.map(s=>`<option ${s===d.stage?"selected":""}>${s}</option>`).join("")}</select></div></div>`).join("")}</div></section>`:""})()}
   ${(()=>{const rs=remsFor(a.id);return rs.length?`<section><div class="sechead"><h3>Follow-ups</h3></div><div class="rems">${rs.map(r=>remRow(r,false)).join("")}</div></section>`:""})()}
   <section><h3>Activity</h3><div class="timeline" style="margin-top:12px">${ev.map(x=>`<div class="ev k-${esc(x.kind)}"><div class="h"><span class="kind">${esc(kindLabel(x.kind))}</span><span class="mono muted">${fmtDate(x.date||x.at)}</span><span class="muted">${esc(x.by||"")}</span></div>${x.text?`<p>${esc(x.text)}</p>`:""}${x.contactMet?`<p class="muted">Met with ${esc(x.contactMet)}</p>`:""}</div>`).join("")||'<p class="muted">No activity yet. Log a visit or add a note.</p>'}</div></section>
@@ -603,11 +688,12 @@ function openComposer(kind,preset){
   const who=`<label><span class="lbl">By</span><select id="cBy">${ownerOpts(S.me)}</select></label>`;
   const end=(lbl,cls="pri")=>`<div class="end"><button type="button" class="btn ghost" data-act="cancel">Cancel</button><button class="btn ${cls}">${lbl}</button></div>`;
   const F={
-    touch:`<h3>${preset==="visit"?"Log site visit":"Log call, email or meeting"}</h3>${laneOK(a)?"":`<label class="needlane"><span class="lbl">Pick the lane first: which approach are you taking?</span><select id="cLane" required><option value="">Choose</option>${LANES.map(l=>`<option ${l===a.lane?"selected":""}>${l}</option>`).join("")}</select>${a.laneNote?`<span class="muted" style="font-size:12px">Research note: ${esc(a.laneNote)}</span>`:""}</label>`}<div class="row2"><label><span class="lbl">Type</span><select id="cType">${TOUCH_TYPES.map(([k,l])=>`<option value="${k}" ${k===preset?"selected":""}>${l}</option>`).join("")}</select></label>
-      <label><span class="lbl">Date</span><input type="date" id="cDate" value="${today()}" required></label>${who}</div>
-      <label><span class="lbl">Who you talked to</span><input type="text" id="cMet" list="cMetList" placeholder="Name and title"><datalist id="cMetList">${(a.people||[]).map(p=>`<option value="${esc(p.name)}">`).join("")}</datalist></label>
-      <label><span class="lbl">Notes</span><textarea id="cText" placeholder="What you saw, what they need, what was promised"></textarea></label>${remFields(preset==="visit",a)}${end("Save")}`,
-    remind:`<h3>Set follow-up reminder</h3>${remFields(true,a).replace('<input type="checkbox" id="rOn" checked>','<input type="checkbox" id="rOn" checked disabled>')}${end("Set reminder")}`,
+    touch:`<h3>Log activity</h3>${laneOK(a)?"":`<label class="needlane"><span class="lbl">First, which approach are you taking?</span><select id="cLane"><option value="">Choose a lane</option>${LANES.map(l=>`<option ${l===a.lane?"selected":""}>${l}</option>`).join("")}</select>${a.laneNote?`<span class="muted" style="font-size:12px">Research note: ${esc(a.laneNote)}</span>`:""}</label>`}
+      <div class="seg" role="radiogroup" aria-label="What happened">${[...TOUCH_TYPES,["note","Note"]].map(([k,l],i)=>`<label><input type="radio" name="cType" value="${k}" ${(preset||"call")===k?"checked":""}><span>${l}</span></label>`).join("")}</div>
+      <label><span class="lbl">What happened</span><textarea id="cText" placeholder="Who you talked to, what they need, what you promised"></textarea></label>
+      <div class="row2"><label><span class="lbl">Date</span><input type="date" id="cDate" value="${today()}" required></label>${who}</div>
+      ${remFields(false,a)}${end("Save")}`,
+    remind:`<h3>Follow-up</h3><p class="muted" style="margin:0;font-size:13px">Sets a reminder and the account's next step together.</p>${remFields(true,a).replace('<input type="checkbox" id="rOn" checked>','<input type="checkbox" id="rOn" checked disabled>')}${end("Save follow-up")}`,
     deal:`<h3>Add deal</h3><label><span class="lbl">Deal name</span><input type="text" id="dName" placeholder="Armed guard, 2 posts, 24/7" required></label>
       <div class="row2"><label><span class="lbl">Value ($)</span><input type="text" id="dValue" inputmode="decimal" placeholder="12500" required></label>
       <label><span class="lbl">Per</span><select id="dTerm"><option value="monthly">Month</option><option value="annual">Year</option></select></label>
@@ -643,10 +729,11 @@ async function submitComposer(){
   const by=v("cBy")||S.me;
   if(!S.me){toast("Sign in again.");return}
   try{
-  if(k==="touch"){const d=v("cDate"),ty=v("cType");if(!d)return toast("Enter the date.");
-    if(!laneOK(a)){const ln=v("cLane");if(!ln)return toast("Pick the lane before logging contact.");await setLane(a,ln);}
-    await logTouch(a,ty,d,v("cText"),v("cMet"),by);await addReminderFromForm(a);toast((TOUCH_TYPES.find(x=>x[0]===ty)||[,"Activity"])[1]+" logged"+(document.getElementById("rOn")&&document.getElementById("rOn").checked?" and reminder set":""));}
-  if(k==="remind"){if(!v("rDue"))return toast("Pick a date for the reminder.");await addReminderFromForm(a);toast("Reminder set");}
+  if(k==="touch"){const d=v("cDate"),ty=(document.querySelector('input[name="cType"]:checked')||{}).value||"call";if(!d)return toast("Enter the date.");
+    if(ty==="note"&&!v("cText"))return toast("Write the note first.");
+    if(!laneOK(a)&&ty!=="note"){const ln=v("cLane");if(!ln)return toast("Pick the lane before logging contact.");await setLane(a,ln);}
+    await logTouch(a,ty,d,v("cText"),"",by);await addReminderFromForm(a);toast((TOUCH_TYPES.find(x=>x[0]===ty)||[,"Note"])[1]+(ty==="note"?" saved":" logged")+(document.getElementById("rOn")&&document.getElementById("rOn").checked?" and reminder set":""));}
+  if(k==="remind"){if(!v("rDue"))return toast("Pick a date for the follow-up.");await addReminderFromForm(a);toast("Follow-up set");}
   if(k==="note"){const t=v("cText");if(!t)return toast("Write the note first.");await logTouch(a,"note",today(),t,"",S.me);toast("Note saved");}
   if(k==="deal"){const n=v("dName"),val=parseFloat(v("dValue").replace(/[$,\s]/g,""));if(!n)return toast("Name the deal.");if(!(val>=0))return toast("Enter the deal value as a number.");
     const deal={accountId:a.id,name:n,value:val,term:v("dTerm"),closeDate:v("dClose"),stage:v("dStage2"),owner:v("dOwner2"),createdAt:nowISO(),createdBy:S.me};
@@ -718,7 +805,7 @@ document.addEventListener("click",async e=>{
   if(t.dataset.nudge){const n=t.dataset.nudge,why=t.dataset.why||"";try{await db.collection("reminders").add({accountId:"",type:"Catch up",due:today(),time:"",assignee:n,note:"From "+(S.me||"admin")+": "+why,done:false,createdAt:nowISO(),createdBy:S.me,nudge:true});t.textContent="Nudged";t.disabled=true;toast(n+" will see this in My Work")}catch(err){toast(errText(err))}return}
   if(t.dataset.open){S.open=t.dataset.open;S.composer=null;render();return}
   if(t.dataset.unown){const a=S.accounts.get(S.open),n=t.dataset.unown;if(!a)return;if(!canEdit(a))return toast("Only owners and admins can change owners.");try{await patchAccount(a.id,ownPatch(own(a).filter(x=>x!==n)));await logActivity({accountId:a.id,kind:"owner",text:`Removed ${n} as owner`});toast(n+" removed")}catch(err){}return}
-  if(t.dataset.comp){openComposer(t.dataset.comp,t.dataset.preset);return}
+  if(t.dataset.comp){const m=t.closest("details.more");if(m)m.open=false;openComposer(t.dataset.comp,t.dataset.preset);return}
   if(t.dataset.stage){S.f={...S.f,stage:t.dataset.stage,list:"",owner:"",lane:"",q:""};saveF();location.hash="prospects";return}
   if(t.dataset.goto){location.hash=t.dataset.goto;return}
   if(t.dataset.sort){if(S.view==="mine")return;S.f.dir=S.f.sort===t.dataset.sort?-S.f.dir:1;S.f.sort=t.dataset.sort;saveF();$("#view").innerHTML="";render();return}
@@ -735,14 +822,17 @@ document.addEventListener("click",async e=>{
     const b=await r.blob(),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=`Vanguard Prospect List ${today()}.xlsx`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast("Excel downloaded")}
     catch(err){toast(err.message||"Export failed")}t.disabled=false;t.textContent="Download Excel";return}
   if(act==="confirmlane"){const a=S.accounts.get(S.open);if(a&&a.lane&&canEdit(a)){try{await setLane(a,a.lane);toast("Lane confirmed: "+a.lane)}catch(err){}}return}
+  if(act==="signout"||act==="pin"){const m=t.closest("details");if(m)m.open=false}
   if(act==="signout"){window.crmSignOut&&window.crmSignOut()}
   if(act==="pin"){window.crmChangePin&&window.crmChangePin()}
   if(act==="newperson"){const f=$("#personForm");f.hidden=false;$("#npEmail").focus()}
   if(act==="cancelperson"){const f=$("#personForm");f.hidden=true;f.reset();$("#npMatch").textContent=""}
   if(act==="quicklog"){if(!S.canWrite)return toast("You have view access only.");S.open="__log";render()}
+  if(act==="filters"){S.showF=!S.showF;$("#view").innerHTML="";render();return}
   if(act==="clear"){S.f={...S.f,q:"",list:"",stage:"",owner:"",lane:""};saveF();$("#view").innerHTML="";render()}
   if(act==="accept"){const a=S.accounts.get(S.open);try{await patchAccount(a.id,{handoff:{...a.handoff,accepted:true,acceptedAt:nowISO()}});await logActivity({accountId:a.id,kind:"accepted",text:S.me+" accepted the lead"});toast("Lead accepted")}catch(err){}}
 });
+document.addEventListener("click",e=>{document.querySelectorAll("details.more[open],details.usermenu[open]").forEach(d=>{if(!d.contains(e.target))d.open=false})},true);
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape"&&S.open){if(S.composer)closeComposer();else{S.open=null;render()}}
   if(e.key==="Enter"&&e.target.matches(".tr.row")){S.open=e.target.dataset.open;render()}
@@ -914,8 +1004,7 @@ window.startApp=function(adapter,me){
 <div id="login" class="login" role="dialog" aria-label="Sign in">
   <form class="login-card" id="loginForm" autocomplete="off">
     <img src="/vanguard-wordmark.svg" alt="Vanguard" class="login-logo">
-    <h1 class="login-title">CRM</h1>
-    <p class="muted login-sub" id="lgSub">Sign in with your name and PIN.</p>
+        <p class="muted login-sub" id="lgSub">Sign in with your name and PIN.</p>
     <label class="lg-field" id="lgNameRow"><span class="lbl">Your name</span><select id="lgName" required><option value="">Loading names</option></select></label>
     <label class="lg-field" id="lgCurRow" hidden><span class="lbl">Current PIN</span><input id="lgCur" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password"></label>
     <label class="lg-field"><span class="lbl" id="lgPinLbl">PIN</span><input id="lgPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password" required></label>
