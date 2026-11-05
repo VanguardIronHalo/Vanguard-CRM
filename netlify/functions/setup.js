@@ -1,6 +1,6 @@
-// POST /api/setup?key=<CRM_SETUP_KEY> : one time load of employees and the 233 prospects.
-// Safe to run twice: it only creates records that don't exist yet.
-// After setup works, delete CRM_SETUP_KEY in Netlify to switch this off.
+// POST /api/setup : one time load of employees and the 233 prospects.
+// It only runs while the employee list is empty, so once setup has worked it switches itself off.
+// (If CRM_SETUP_KEY is set in Netlify, the call must also carry ?key=<that value>.)
 const { fb, USERS, slug, json } = require("../lib/common");
 const accounts = require("../data/accounts.json");
 
@@ -11,11 +11,12 @@ const EMPLOYEES = [
 const ADMINS = ["Matthew Lambert"];
 
 exports.handler = async (event) => {
-  const key = process.env.CRM_SETUP_KEY;
-  if (!key) return json(404, { error: "Setup is switched off." });
   if (event.httpMethod !== "POST") return json(405, { error: "Use POST" });
-  if ((event.queryStringParameters || {}).key !== key) return json(403, { error: "Wrong setup key." });
+  const key = process.env.CRM_SETUP_KEY;
+  if (key && (event.queryStringParameters || {}).key !== key) return json(403, { error: "Wrong setup key." });
   const { db } = fb();
+  const already = await db.collection(USERS).limit(1).get();
+  if (!already.empty) return json(409, { error: "Setup already ran. The CRM is loaded, so this is switched off." });
   const now = new Date().toISOString();
   let users = 0, accts = 0;
 
@@ -42,5 +43,5 @@ exports.handler = async (event) => {
   }
   if (n) await batch.commit();
 
-  return json(200, { ok: true, employeesAdded: users, accountsAdded: accts, note: "Now delete CRM_SETUP_KEY in Netlify." });
+  return json(200, { ok: true, employeesAdded: users, accountsAdded: accts, note: "Done. Setup is now switched off for good." });
 };

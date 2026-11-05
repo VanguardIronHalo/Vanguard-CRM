@@ -41,7 +41,7 @@ Do these in order. Each step needs the one before it.
 2. **Firestore Database:** Create database, production mode, location `us-central1` (same as IronHalo).
 3. **Rules:** in Firestore, open the Rules tab, replace everything there with the contents of `firestore.rules` from this repo, and publish. These rules limit edits to owners and admins and keep PINs hidden.
 4. **Authentication:** click Get started. You don't need to turn on any sign in method, because the CRM signs people in with its own tokens. Authentication just has to be switched on.
-5. **Web app config:** Project settings, General, Your apps, add a Web app named `vanguard-crm`. Copy the config object; you'll need it in step 3.
+5. **Web app config:** already built into the app (project vanguard-crm-6dde0). These values are public; the rules and the PIN check are what protect the data.
 6. **Service account key:** Project settings, Service accounts, Generate new private key. This downloads a JSON file. Keep it private and never commit it. Netlify uses it to check PINs.
 
 ### 2. Create the Netlify site from GitHub
@@ -53,8 +53,6 @@ Do these in order. Each step needs the one before it.
 | Name | Value |
 |---|---|
 | `FIREBASE_SERVICE_ACCOUNT` | The whole service account JSON from step 1.6 |
-| `FIREBASE_WEB_CONFIG` | The web config from step 1.5 as one line of JSON, for example `{"apiKey":"...","authDomain":"vanguard-crm.firebaseapp.com","projectId":"vanguard-crm","storageBucket":"...","messagingSenderId":"...","appId":"..."}` |
-| `CRM_SETUP_KEY` | Any long phrase you make up. Delete it after step 3. |
 
 4. Deploys, Trigger deploy, so the functions pick up the variables.
 
@@ -63,10 +61,10 @@ Do these in order. Each step needs the one before it.
 In PowerShell, using the key you made up:
 
 ```powershell
-Invoke-RestMethod -Method Post "https://vanguardcrm.netlify.app/api/setup?key=YOUR_SETUP_KEY"
+Invoke-RestMethod -Method Post "https://vanguardcrm.netlify.app/api/setup"
 ```
 
-You should see 11 employees and 233 accounts added. Running it twice is safe. Then **delete `CRM_SETUP_KEY`** in Netlify and redeploy, which turns setup off.
+You should see 11 employees and 233 accounts added. Setup only runs while the employee list is empty, so it switches itself off after this.
 
 ### 4. Turn on backups
 
