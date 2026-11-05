@@ -51,7 +51,7 @@ button{cursor:pointer}
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
-.bar-in{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:10px;max-width:1400px;margin:0 auto}
+.bar-in{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:10px}
 .mark{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:21px;letter-spacing:.06em;text-transform:uppercase}
 .mark img{display:block;height:36px;width:auto;background:#0B0E2B;border-radius:8px;padding:5px 7px;box-sizing:content-box}
 .mark small{font-family:var(--f-body);font-weight:400;font-size:13px;letter-spacing:0;text-transform:none;color:var(--muted)}
@@ -62,7 +62,7 @@ nav.tabs a .n{font-family:var(--f-mono);font-size:11px;margin-left:5px;opacity:.
 .whoami{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 select,input[type=text],input[type=date],input[type=search],textarea{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
 textarea{width:100%;min-height:84px;resize:vertical}
-main{max-width:1400px;margin:0 auto;padding-block:20px 60px}
+main{padding-block:20px 90px}
 h1,h2,h3{font-family:var(--f-display);font-weight:600;letter-spacing:.03em;text-wrap:balance;margin:0}
 h2{font-size:22px;text-transform:uppercase}
 h3{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
@@ -351,6 +351,36 @@ nav.tabs a .dot{background:#FF5A4E;color:#FFFFFF}
   .fab{width:56px;height:56px;justify-content:center;padding:0}
   .d-top h2{font-size:22px}
 }
+.tr.more{display:flex;gap:12px;align-items:center;justify-content:center;padding:14px}
+.acct-details summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.acct-details summary::-webkit-details-marker{display:none}
+.acct-details summary h3::before{content:"\25B8  ";color:var(--brand)}
+.acct-details[open] summary h3::before{content:"\25BE  "}
+.cnt{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--brand-soft);color:var(--brand);font-family:var(--f-mono);font-size:11px;letter-spacing:0;margin-left:4px}
+.phone .homegrid{display:flex;flex-direction:column;gap:10px}
+.phone .homegrid > .panel{padding:12px 14px}
+.phone .homegrid > .panel > h3{display:flex;align-items:center;gap:6px;margin:0;cursor:pointer}
+.phone .homegrid > .panel > h3::after{content:"\25BE";margin-left:auto;color:var(--muted)}
+.phone .homegrid > .panel.closed > h3::after{content:"\25B8"}
+.phone .homegrid > .panel:not(.closed) > h3{margin-bottom:10px}
+.phone .homegrid > .panel.closed > :not(h3){display:none!important}
+.phone .homegrid > .panel:not(.expanded) .mini > button:nth-of-type(n+6),.phone .homegrid > .panel:not(.expanded) .rems > .rem:nth-of-type(n+6){display:none}
+.phone .homegrid > .panel:has(.rems){order:-2}
+.phone .homegrid > .panel.na{order:-1}
+.phone .stagebar{display:flex;overflow-x:auto;gap:1px;scrollbar-width:none;margin:10px 0 16px}
+.phone .stagebar::-webkit-scrollbar{display:none}
+.phone .stagebar button{flex:0 0 auto;min-width:96px;padding:10px 12px}
+.phone .stagebar b{font-size:24px}
+.phone .homegrid > .panel p.muted{display:none}
+@media (max-width:820px){
+  .tr.row{padding:8px 12px;gap:2px 10px}
+  .tr.row .c-next,.tr.row .c-visit{display:none}
+  .tr.row .c-date:empty{display:none}
+  .tr.row .c-owner{font-size:12.5px;color:var(--muted)}
+  .tr.row .cell-co .sub{font-size:12px}
+  .tr.prow{grid-template-columns:1fr auto}
+  .tr.prow > div:nth-child(3),.tr.prow > div:nth-child(4){display:none}
+}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:30;font-weight:700;max-width:90vw}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
 </style>
@@ -383,7 +413,7 @@ const ADMIN_VIEWS=[["pace","Team pace"],["audit","Audit log"],["employees","Empl
 const TOUCHK=["call","email","meeting","visit","note"];
 const GENERIC=["gmail.com","yahoo.com","outlook.com","hotmail.com","icloud.com","aol.com","comcast.net","att.net","live.com","msn.com","me.com"];
 const DEAL_STAGES=["Open","Proposal sent","Negotiating","Won","Lost"];
-const S={excel:{},users:[],reminders:[],boardAll:false,boardMine:false,au:{who:"",kind:"",q:""},admins:[],loginName:"",isOwner:false,levelAdmin:false,accounts:new Map(),activity:[],deals:[],team:[],me:"",view:"home",open:null,composer:null,loaded:false,canWrite:true,
+const S={lim:(window.matchMedia("(max-width:820px)").matches?25:50),actAll:false,homeOpen:{},excel:{},users:[],reminders:[],boardAll:false,boardMine:false,au:{who:"",kind:"",q:""},admins:[],loginName:"",isOwner:false,levelAdmin:false,accounts:new Map(),activity:[],deals:[],team:[],me:"",view:"home",open:null,composer:null,loaded:false,canWrite:true,
   f:{q:"",list:"",stage:"",owner:"",lane:"",sort:"order",dir:1}};
 let db=null,user=null,uid=null;
 const $=s=>document.querySelector(s);
@@ -492,10 +522,10 @@ function render(){
   const wa=$("#whoami");
   if(S.me&&!wa.dataset.me){wa.dataset.me=S.me;const ini=S.me.split(/\s+/).map(x=>x[0]).join("").slice(0,2).toUpperCase();
     wa.innerHTML=`<details class="usermenu"><summary aria-label="Account menu for ${esc(S.me)}"><span class="avatar">${esc(ini)}</span><span class="uname">${esc(S.me)}</span></summary><div class="menu right"><div class="menu-head">Signed in as<br><b>${esc(S.me)}</b></div><button data-act="pin">Change PIN</button><button data-act="signout">Sign out</button></div></details>`}
-  const v=$("#view");
+  const v=$("#view");v.classList.toggle("phone",isPhone());
   if(!S.loaded&&!S.accounts.size){v.innerHTML=`<div class="panel"><h3>Loading accounts</h3><p class="muted">Prospects, clients and activity will appear here in a moment.</p></div>`;}
   else if(S.loaded&&!S.accounts.size&&!isAdminView(S.view)){v.innerHTML=`<div class="panel"><h3>No accounts yet</h3><p class="muted">Add your first prospect to start tracking owners, visits and notes.</p><p><button class="btn pri" data-act="new">Add prospect</button></p></div>`;}
-  else if(S.view==="home")v.innerHTML=homeHTML();
+  else if(S.view==="home"){v.innerHTML=homeHTML();phoneHome(v)}
   else if(S.view==="employees")v.innerHTML=adminNav()+employeesHTML();
   else if(S.view==="pace")v.innerHTML=adminNav()+paceHTML();
   else if(S.view==="audit"){const keep=document.activeElement&&document.activeElement.id==="auQ";if(!keep||!$("#auBody"))v.innerHTML=adminNav()+auditShell();$("#auBody").innerHTML=auditRows();}
@@ -512,8 +542,8 @@ function render(){
     const q=(S.pq||"").toLowerCase().trim();
     const r=allPeople().filter(p=>!q||[p.name,p.title,p.role,p.phone,p.email,p.company].join(" ").toLowerCase().includes(q)).sort((x,y)=>String(x.company).localeCompare(y.company));
     $("#pcount").textContent=r.length+" shown";
-    $("#peopleBody").innerHTML=r.slice(0,400).map(p=>`<div class="tr row prow" data-open="${esc(p.accountId)}" tabindex="0">
-      <div class="ell"><b>${esc(p.name)}</b><div class="sub ell">${esc([p.title,p.role].filter(Boolean).join(" · "))}</div></div><div class="ell">${esc(p.company)}</div><div class="mono ell">${esc(p.phone||"")}</div><div class="mono ell">${esc(p.email||"")}</div></div>`).join("")||'<div class="tr"><span class="empty">No people match.</span></div>';
+    $("#peopleBody").innerHTML=r.slice(0,S.lim).map(p=>`<div class="tr row prow" data-open="${esc(p.accountId)}" tabindex="0">
+      <div class="ell"><b>${esc(p.name)}</b><div class="sub ell">${esc([p.title,p.role].filter(Boolean).join(" · "))}</div></div><div class="ell">${esc(p.company)}</div><div class="mono ell">${esc(p.phone||"")}</div><div class="mono ell">${esc(p.email||"")}</div></div>`).join("")+(r.length>S.lim?`<div class="tr more"><button class="btn" data-act="more">Show ${Math.min(pageSize(),r.length-S.lim)} more</button><span class="muted">Showing ${S.lim} of ${r.length}</span></div>`:"")||'<div class="tr"><span class="empty">No people match.</span></div>';
   }
   else{
     const keepQ=document.activeElement&&document.activeElement.id==="q";
@@ -525,6 +555,18 @@ function render(){
   renderDrawer();
 }
 
+const HOME_DEFAULT_OPEN=["Follow-ups due in 7 days","Needs attention"];
+function phoneHome(v){
+  v.querySelectorAll(".homegrid > .panel").forEach(p=>{
+    const h=p.querySelector("h3");if(!h)return;const key=h.textContent.split(" · ")[0].trim();
+    const n=p.querySelectorAll(".mini > button, .rems > .rem").length;
+    if(!h.querySelector(".cnt")&&n)h.insertAdjacentHTML("beforeend",` <span class="cnt">${n}</span>`);
+    h.setAttribute("role","button");h.tabIndex=0;h.dataset.panel=key;
+    const open=key in S.homeOpen?S.homeOpen[key]:HOME_DEFAULT_OPEN.includes(key);
+    p.classList.toggle("closed",isPhone()&&!open);
+    p.classList.toggle("expanded",!!S.homeOpen[key+"#all"]);
+    if(isPhone()&&n>5&&!p.querySelector(".showall"))p.insertAdjacentHTML("beforeend",`<button class="linkish showall" data-panelall="${esc(key)}">${S.homeOpen[key+"#all"]?"Show top 5":"Show all "+n}</button>`);
+  });}
 function homeHTML(){
   const p=accts().filter(a=>a.type!=="client");
   const byStage=STAGES.filter(s=>s!=="Current client").map(s=>[s,p.filter(a=>a.stage===s).length]);
@@ -544,7 +586,7 @@ function homeHTML(){
       <div><div class="tilebig">${money(openDeals.reduce((s,d)=>s+annual(d),0))}</div><span class="lbl">Open, per year · ${openDeals.length} deal${openDeals.length===1?"":"s"}</span></div>
       <div><div class="tilebig">${money(wonDeals.reduce((s,d)=>s+annual(d),0))}</div><span class="lbl">Won, per year · ${wonDeals.length}</span></div></div>
       <div class="mini" style="margin-top:10px">${openDeals.sort((a,b)=>String(a.closeDate||"9").localeCompare(b.closeDate||"9")).slice(0,6).map(d=>{const a=S.accounts.get(d.accountId);return a?item(a,`<span class="mono">${money(annual(d))}/yr</span>`,esc(`${d.name} · ${d.stage}${d.closeDate?" · close "+fmtDate(d.closeDate):""}`)):""}).join("")||'<div class="empty">No open deals. Add one from any account.</div>'}</div></div>
-    <div class="panel"><h3>Needs attention${S.me?" · yours":""}</h3><p class="muted" style="margin:-4px 0 8px;font-size:13px">Clients, active prospects and owned leads with no call, email, meeting, visit or note in 30+ days.</p><div class="mini">${naMine.slice(0,10).map(x=>item(x.a,ageTag(x.d),esc((own(x.a).length?ownTxt(x.a):"No owner")+" · "+x.a.stage+(x.lt?" · last touch "+fmtDate(x.lt):"")))).join("")||'<div class="empty">Every active account has been touched in the last 30 days.</div>'}${naMine.length>10?`<div class="empty">${naMine.length-10} more</div>`:""}</div></div>
+    <div class="panel na"><h3>Needs attention${S.me?" · yours":""}</h3><p class="muted" style="margin:-4px 0 8px;font-size:13px">Clients, active prospects and owned leads with no call, email, meeting, visit or note in 30+ days.</p><div class="mini">${naMine.slice(0,10).map(x=>item(x.a,ageTag(x.d),esc((own(x.a).length?ownTxt(x.a):"No owner")+" · "+x.a.stage+(x.lt?" · last touch "+fmtDate(x.lt):"")))).join("")||'<div class="empty">Every active account has been touched in the last 30 days.</div>'}${naMine.length>10?`<div class="empty">${naMine.length-10} more</div>`:""}</div></div>
     <div class="panel"><h3>Follow-ups due in 7 days</h3><div class="rems">${openRems().filter(r=>r.due<=new Date(Date.now()+7*864e5).toLocaleDateString("en-CA")).sort((a,b)=>String(a.due).localeCompare(b.due)).slice(0,10).map(r=>remRow(r,true)).join("")||'<div class="empty">No follow-ups scheduled this week.</div>'}</div></div>
     <div class="panel"><h3>Call this week</h3><div class="mini">${ctw.map(a=>item(a,`<span class="pill ${stCls(a.stage)}">${esc(a.stage)}</span>`,own(a).length?esc((own(a).length>1?"Owners: ":"Owner: ")+ownTxt(a)):'<span class="unassigned">No owner yet</span>')).join("")||'<div class="empty">Nothing on this list.</div>'}</div></div>
     <div class="panel"><h3>Next steps due in 7 days</h3><div class="mini">${due.map(a=>item(a,`<span class="mono ${a.nextDate<t?"due-over":""}">${a.nextDate<t?"Overdue ":""}${fmtDate(a.nextDate)}</span>`,esc((own(a).length?ownTxt(a)+": ":"")+(a.nextAction||"")))).join("")||'<div class="empty">No next steps are scheduled. Set one from any account.</div>'}</div></div>
@@ -576,14 +618,15 @@ function listShell(view){
 function listRows(view){
   const r=filtered(view==="clients"?"client":view==="mine"?"mine":"prospect"),t=today();
   if(!r.length)return `<div class="tr"><span class="empty">${view==="mine"?(S.me?"No accounts are assigned to you yet. Open any prospect and add yourself as an owner.":"Pick your name at the top."):"No accounts match these filters."}</span></div>`;
-  return r.map(a=>`<div class="tr row ${S.open===a.id?"active":""}" data-open="${esc(a.id)}" tabindex="0">
+  const total=r.length,more=total>S.lim?`<div class="tr more"><button class="btn" data-act="more">Show ${Math.min(pageSize(),total-S.lim)} more</button><span class="muted">Showing ${S.lim} of ${total}</span></div>`:"";
+  return r.slice(0,S.lim).map(a=>`<div class="tr row ${S.open===a.id?"active":""}" data-open="${esc(a.id)}" tabindex="0">
     <div class="cell-co"><span class="co">${laneChip(a)} ${esc(a.company)}${a.handoff&&!a.handoff.accepted?'<span class="flag">HANDOFF</span>':""}</span><span class="sub">${esc(a.type==="client"?(a.services||[]).join(", ")||"Client":(a.list||""))}${a.sector?" · "+esc(a.sector):""}</span></div>
     <div><span class="pill ${stCls(a.stage)}">${esc(a.stage)}</span></div>
     <div class="c-owner ell">${own(a).length?esc(ownTxt(a)):'<span class="unassigned">No owner</span>'}</div>
     <div class="c-next ell muted">${esc(a.nextAction||"")}</div>
     <div class="c-date mono ${a.nextDate&&a.nextDate<t?"due-over":""}">${fmtDate(a.nextDate)}</div>
     <div class="c-visit mono muted">${a.lastVisit?"Visited "+fmtDate(a.lastVisit):lastTouch(a)?"Touched "+fmtDate(lastTouch(a)):""}</div>
-  </div>`).join("");}
+  </div>`).join("")+more;}
 
 function isAdmin(){return !!S.me&&S.admins.includes(S.me)}
 function excelPanel(){
@@ -664,13 +707,13 @@ function bodyHTML(a){
   <div class="nextbox"><div class="txt"><span class="lbl">Next</span><div>${a.nextAction?esc(a.nextAction):'<span class="muted">Nothing scheduled. Use Follow-up to set the next step.</span>'}</div></div>${a.nextDate?`<span class="mono ${a.nextDate<t?"due-over":""}">${a.nextDate<t?"Overdue · ":""}${fmtDate(a.nextDate)}</span>`:""}</div>
   ${(()=>{const ds=S.deals.filter(d=>d.accountId===a.id);return ds.length?`<section><div class="sechead"><h3>Deals</h3></div><div class="deals">${ds.map(d=>`<div class="deal"><div><b>${esc(d.name)}</b><div class="sub">${esc(d.stage)}${d.owner?" · "+esc(d.owner):""}${d.closeDate?" · close "+fmtDate(d.closeDate):""}</div></div><div style="text-align:right"><div class="v">${money(d.value)}<span class="muted" style="font-size:13px">/${d.term==="monthly"?"mo":"yr"}</span></div><select data-dealstage="${esc(d.id)}" aria-label="Deal stage" ${canEdit(a)?"":"disabled"}>${DEAL_STAGES.map(s=>`<option ${s===d.stage?"selected":""}>${s}</option>`).join("")}</select></div></div>`).join("")}</div></section>`:""})()}
   ${(()=>{const rs=remsFor(a.id);return rs.length?`<section><div class="sechead"><h3>Follow-ups</h3></div><div class="rems">${rs.map(r=>remRow(r,false)).join("")}</div></section>`:""})()}
-  <section><h3>Activity</h3><div class="timeline" style="margin-top:12px">${ev.map(x=>`<div class="ev k-${esc(x.kind)}"><div class="h"><span class="kind">${esc(kindLabel(x.kind))}</span><span class="mono muted">${fmtDate(x.date||x.at)}</span><span class="muted">${esc(x.by||"")}</span></div>${x.text?`<p>${esc(x.text)}</p>`:""}${x.contactMet?`<p class="muted">Met with ${esc(x.contactMet)}</p>`:""}</div>`).join("")||'<p class="muted">No activity yet. Log a visit or add a note.</p>'}</div></section>
-  <section><h3 style="margin-bottom:10px">Account</h3><dl class="facts">
+  <section><h3>Activity${ev.length?` <span class="muted" style="text-transform:none;letter-spacing:0">(${ev.length})</span>`:""}</h3><div class="timeline" style="margin-top:12px">${(S.actAll?ev:ev.slice(0,5)).map(x=>`<div class="ev k-${esc(x.kind)}"><div class="h"><span class="kind">${esc(kindLabel(x.kind))}</span><span class="mono muted">${fmtDate(x.date||x.at)}</span><span class="muted">${esc(x.by||"")}</span></div>${x.text?`<p>${esc(x.text)}</p>`:""}${x.contactMet?`<p class="muted">Met with ${esc(x.contactMet)}</p>`:""}</div>`).join("")||'<p class="muted">No activity yet. Use Log activity after your first call or visit.</p>'}</div>${ev.length>5?`<button class="linkish" data-act="actall">${S.actAll?"Show latest 5":"Show all "+ev.length}</button>`:""}</section>
+  <details class="acct-details" ${isPhone()?"":"open"}><summary><h3>Account details</h3><span class="muted">Contact, address, research</span></summary><dl class="facts" style="margin-top:10px">
     ${a.type==="client"?factRow("Services",(a.services||[]).join(", ")):""}
     ${factRow("Why",a.why)}${factRow("Contact",a.contact)}${factRow("Phone",a.phone,1)}${factRow("Address",a.address,1)}${factRow("Website",a.website)}
     ${factRow("List",a.list)}${factRow("Sector",a.sector)}${factRow("Tier",a.tier)}${factRow("Lane research",a.laneNote)}${factRow("Route in",a.routeIn)}${factRow("Risk",a.risk)}
     ${factRow("Local evidence",a.localEvidence)}${factRow("Latest note",a.latestNote)}${factRow("Wendy's notes",a.wendyNotes)}${factRow("Research",a.research)}${factRow("Verified",a.verifiedAsOf)}
-  </dl></section>
+  </dl></details>
   <section><div class="sechead"><h3>People</h3><button class="btn" data-comp="contact" ${canEdit(a)?"":"disabled"}>Add contact</button></div>${(a.people||[]).length?`<div class="people">${a.people.map(p=>`<div class="person"><b>${esc(p.name)}</b><span class="muted">${esc([p.title,p.role].filter(Boolean).join(" · "))}</span>${p.phone?`<span class="mono">${esc(p.phone)} <button type="button" class="copy" data-copy="${esc(p.phone)}">Copy</button></span>`:""}${p.email?`<span class="mono">${esc(p.email)} <button type="button" class="copy" data-copy="${esc(p.email)}">Copy</button></span>`:""}</div>`).join("")}</div>`:'<p class="muted">No contacts on file yet.</p>'}</section>
   <p class="mono muted">Record ${esc(a.id)}${a.updatedAt?" · updated "+fmtDate(a.updatedAt)+(a.updatedBy?" by "+esc(a.updatedBy):""):""}</p>`;}
 
@@ -805,10 +848,12 @@ async function addProspect(){
 
 /* ---------- events ---------- */
 document.addEventListener("click",async e=>{
-  const t=e.target.closest("[data-open],[data-act],[data-comp],[data-stage],[data-goto],[data-sort],[data-copy],[data-rm],[data-unown],[data-done],[data-nudge],[data-resetpin]");if(!t)return;
+  const t=e.target.closest("[data-open],[data-act],[data-comp],[data-stage],[data-goto],[data-sort],[data-copy],[data-rm],[data-unown],[data-done],[data-nudge],[data-resetpin],[data-panel],[data-panelall]");if(!t)return;
+  if(t.dataset.panelall){const k=t.dataset.panelall+"#all";S.homeOpen[k]=!S.homeOpen[k];render();return}
+  if(t.dataset.panel){if(!isPhone())return;const k=t.dataset.panel,cur=k in S.homeOpen?S.homeOpen[k]:HOME_DEFAULT_OPEN.includes(k);S.homeOpen[k]=!cur;render();return}
   if(t.dataset.done){const r=S.reminders.find(x=>x.id===t.dataset.done);if(!r)return;try{await queue("reminders/"+r.id,()=>db.doc("reminders/"+r.id).update({done:true,doneAt:nowISO(),doneBy:S.me}));if(r.accountId)await logActivity({accountId:r.accountId,kind:"followup",text:`${r.type} completed`});toast("Marked done")}catch(err){}return}
   if(t.dataset.nudge){const n=t.dataset.nudge,why=t.dataset.why||"";try{await db.collection("reminders").add({accountId:"",type:"Catch up",due:today(),time:"",assignee:n,note:"From "+(S.me||"admin")+": "+why,done:false,createdAt:nowISO(),createdBy:S.me,nudge:true});t.textContent="Nudged";t.disabled=true;toast(n+" will see this in My Work")}catch(err){toast(errText(err))}return}
-  if(t.dataset.open){S.open=t.dataset.open;S.composer=null;render();return}
+  if(t.dataset.open){if(S.open!==t.dataset.open)S.actAll=false;S.open=t.dataset.open;S.composer=null;render();return}
   if(t.dataset.unown){const a=S.accounts.get(S.open),n=t.dataset.unown;if(!a)return;if(!canEdit(a))return toast("Only owners and admins can change owners.");try{await patchAccount(a.id,ownPatch(own(a).filter(x=>x!==n)));await logActivity({accountId:a.id,kind:"owner",text:`Removed ${n} as owner`});toast(n+" removed")}catch(err){}return}
   if(t.dataset.comp){const m=t.closest("details.more");if(m)m.open=false;openComposer(t.dataset.comp,t.dataset.preset);return}
   if(t.dataset.stage){S.f={...S.f,stage:t.dataset.stage,list:"",owner:"",lane:"",q:""};saveF();location.hash="prospects";return}
@@ -833,6 +878,8 @@ document.addEventListener("click",async e=>{
   if(act==="newperson"){const f=$("#personForm");f.hidden=false;$("#npEmail").focus()}
   if(act==="cancelperson"){const f=$("#personForm");f.hidden=true;f.reset();$("#npMatch").textContent=""}
   if(act==="quicklog"){if(!S.canWrite)return toast("You have view access only.");S.open="__log";render()}
+  if(act==="more"){S.lim+=pageSize();render();return}
+  if(act==="actall"){S.actAll=!S.actAll;render();return}
   if(act==="filters"){S.showF=!S.showF;$("#view").innerHTML="";render();return}
   if(act==="clear"){S.f={...S.f,q:"",list:"",stage:"",owner:"",lane:""};saveF();$("#view").innerHTML="";render()}
   if(act==="accept"){const a=S.accounts.get(S.open);try{await patchAccount(a.id,{handoff:{...a.handoff,accepted:true,acceptedAt:nowISO()}});await logActivity({accountId:a.id,kind:"accepted",text:S.me+" accepted the lead"});toast("Lead accepted")}catch(err){}}
@@ -870,7 +917,7 @@ document.addEventListener("change",async e=>{
   if(id==="dOwnerAdd"){const o=e.target.value;if(!o)return;const next=[...own(a),o];try{await patchAccount(a.id,ownPatch(next));await logActivity({accountId:a.id,kind:"owner",text:`Added ${o} as owner`});toast(o+" added as owner")}catch(err){}return}
   if(id==="dOwner"){const o=e.target.value;try{await patchAccount(a.id,{owner:o});await logActivity({accountId:a.id,kind:"owner",text:`${a.owner||"No owner"} to ${o||"No owner"}`});toast(o?"Owner set to "+o:"Owner cleared")}catch(err){}}
 });
-document.addEventListener("input",e=>{if(e.target.id==="q"){S.f.q=e.target.value;saveF();render()}if(e.target.id==="pq"){S.pq=e.target.value;render()}if(e.target.id==="gq")gsearch(e.target.value);if(e.target.id==="auQ"){S.au.q=e.target.value;render()}if(e.target.id==="npEmail")matchDomain()});
+document.addEventListener("input",e=>{if(e.target.id==="q"){S.f.q=e.target.value;saveF();render()}if(e.target.id==="pq"){S.pq=e.target.value;S.lim=pageSize();render()}if(e.target.id==="gq")gsearch(e.target.value);if(e.target.id==="auQ"){S.au.q=e.target.value;render()}if(e.target.id==="npEmail")matchDomain()});
 function gsearch(raw){
   const box=$("#gres"),q=raw.trim().toLowerCase(),digits=q.replace(/\D/g,"");
   if(q.length<2){box.hidden=true;return}
@@ -884,7 +931,9 @@ function gsearch(raw){
     `<div class="grp muted" style="padding-bottom:10px">Nothing matches "${esc(raw)}".</div>`;
   box.hidden=false;}
 document.addEventListener("click",e=>{if(!e.target.closest(".gsearch")){$("#gres").hidden=true}else if(e.target.closest("#gres [data-open]")){$("#gres").hidden=true;$("#gq").value=""}},true);
-function saveF(){ls.set("vcrm.f",JSON.stringify(S.f))}
+function saveF(){ls.set("vcrm.f",JSON.stringify(S.f));S.lim=pageSize()}
+const isPhone=()=>window.matchMedia("(max-width:820px)").matches;
+const pageSize=()=>isPhone()?25:50;
 const lastName=n=>{const p=String(n).trim().split(/\s+/);return (p[p.length-1]+" "+p.slice(0,-1).join(" ")).toLowerCase()};
 const byLast=list=>[...list].sort((a,b)=>lastName(a).localeCompare(lastName(b)));
 async function saveTeam(list,admins){if(!db)return;list=byLast(list);admins=(admins||S.admins).filter(n=>list.includes(n));try{await queue("config/team",()=>db.doc("config/team").set({members:list,admins,updatedAt:nowISO()}));$("#teamName")&&($("#teamName").value="");toast("Team updated")}catch(e){}}
@@ -984,8 +1033,9 @@ function matchLogin(){
   if(hit){S.loginName=hit;if(S.me!==hit){S.me=hit;ls.set("vcrm.me",hit)}}}
 document.getElementById("logo").addEventListener("click",e=>{e.preventDefault();
   location.hash=isAdmin()&&!isAdminView(S.view)?"pace":"home";});
-function route(){const h=location.hash.slice(1);S.view=VIEWS.some(v=>v[0]===h)||isAdminView(h)?h:"home";$("#view").innerHTML="";render()}
+function route(){S.lim=pageSize();const h=location.hash.slice(1);S.view=VIEWS.some(v=>v[0]===h)||isAdminView(h)?h:"home";$("#view").innerHTML="";render()}
 window.addEventListener("hashchange",route);
+let _ph=null;window.addEventListener("resize",()=>{const p=isPhone();if(p!==_ph){_ph=p;render()}});
 
 /* ---------- boot (called by the sign in module once Firebase says who you are) ---------- */
 route();
