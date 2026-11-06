@@ -71,7 +71,9 @@ You should see 11 employees and 233 accounts added. Setup only runs while the em
 Since Firebase is the only master copy, give it backups. In the Firebase console, open Firestore, then Disaster recovery:
 
 1. **Point in time recovery: on.** This lets you roll the database back to any minute in the last 7 days, which covers a bad bulk change or a mistake.
-2. **Scheduled backups: daily, kept 14 weeks.** These are full copies you can restore from if something bigger goes wrong.
+2. **Scheduled backups: daily kept 7 days, plus weekly every Sunday kept 98 days.** These are full copies you can restore from if something bigger goes wrong. Firebase caps daily copies at 7 days, which is why the weekly one is there.
+
+All three are on as of November 6, 2026, with the project on the Blaze plan.
 
 Both need the project on the Blaze (pay as you go) plan. At this data size the cost is pennies a month.
 
