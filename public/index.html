@@ -381,6 +381,14 @@ nav.tabs a .dot{background:#FF5A4E;color:#FFFFFF}
   .tr.prow{grid-template-columns:1fr auto}
   .tr.prow > div:nth-child(3),.tr.prow > div:nth-child(4){display:none}
 }
+.splash{position:fixed;inset:0;z-index:70;display:grid;place-content:center;justify-items:center;gap:14px;background:linear-gradient(180deg,#000000 0%,#0B0E2B 55%,#2850E6 100%);color:#FFFFFF}
+.splash img{width:240px;max-width:70vw}
+.splash p{margin:0;font-size:16px;opacity:.85}
+@media (prefers-reduced-motion:no-preference){.splash p{animation:pulse 1.4s ease-in-out infinite}@keyframes pulse{50%{opacity:.4}}}
+.menu button.danger{color:var(--bad)}
+.menu button.danger:hover{background:var(--bad-soft);color:var(--bad)}
+.btn.danger-btn{border-color:var(--bad);color:var(--bad)}
+.btn.danger-btn:hover:not(:disabled){background:var(--bad);color:#FFFFFF}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:30;font-weight:700;max-width:90vw}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
 </style>
@@ -451,6 +459,7 @@ const ownTxt=a=>own(a).join(", ");
 const canEdit=a=>!!a&&(isAdmin()||!own(a).length||owns(a,S.me));
 const laneChip=a=>a.lane?`<span class="lane ${a.laneConfirmed?"":"sugg"}" title="${esc(a.lane)}${a.laneConfirmed?"":" (suggested, owner hasn't confirmed)"}">${a.lane!==LANES[1]?'<i class="l-vg">VG</i>':""}${a.lane!==LANES[0]?'<i class="l-ih">IH</i>':""}${a.laneConfirmed?"":'<i class="l-q">?</i>'}</span>`:`<span class="lane none" title="No lane picked">No lane</span>`;
 const laneOK=a=>!!(a.lane&&a.laneConfirmed);
+const isTestAcct=a=>!!a&&/^\s*test\b/i.test(String(a.company||""));
 const canCloseRem=r=>isAdmin()||r.assignee===S.me||r.createdBy===S.me;
 const ownPatch=list=>({owners:list,owner:list[0]||"",assignedAt:nowISO()});
 const money=n=>"$"+Math.round(Number(n)||0).toLocaleString("en-US");
@@ -640,10 +649,13 @@ function employeesHTML(){
     return `<div><span class="empname"><b>${esc(n)}</b><label class="switch" title="${adm?"Admin":"Not admin"}"><input type="checkbox" data-admin="${esc(u.id)}" ${adm?"checked":""} ${self?"disabled":""}><span class="sw"></span><span class="swl">Admin</span></label>${self?'<span class="muted">(you)</span>':""}</span>
     <span class="muted" style="font-size:13px">${u.hasPin?"PIN set":"No PIN yet"}${u.lastLogin?" · last in "+fmtDate(u.lastLogin):""}</span><span class="muted mono">${c} acct${c===1?"":"s"}</span>
     ${u.hasPin?`<button class="btn ghost" data-resetpin="${esc(n)}">Reset PIN</button>`:"<span></span>"}${self?"<span></span>":`<button class="btn ghost" data-rm="${esc(u.id)}">Remove</button>`}</div>`}).join("")||'<div><span class="muted">No employees yet.</span></div>'}</div>
+  ${(()=>{const n=accts().filter(isTestAcct).length;return `<section class="panel" style="max-width:760px;margin-top:22px"><div class="sechead"><h3>Test accounts</h3><span class="cnt">${n}</span></div>
+    <p class="muted" style="margin:0 0 10px;font-size:13px">Accounts whose company name starts with "Test." Deleting removes them with their activity, follow-ups and deals. Real prospects can't be deleted. The audit log keeps a line for each one removed.</p>
+    <button class="btn danger-btn" data-act="deltestall" ${n?"":"disabled"}>Delete all ${n} test account${n===1?"":"s"}</button></section>`})()}
   ${excelPanel()}
   <p class="muted" style="max-width:66ch;margin-top:14px;font-size:13px">Reset PIN signs that person out everywhere and lets them make a new PIN at their next sign in. Removing someone stops them signing in but keeps everything they logged.</p>`;}
 /* ---------- drawer ---------- */
-function kindLabel(k){return({lane:"Lane",employee:"Employee change",pinreset:"PIN reset",reminder:"Reminder set",followup:"Follow-up done",call:"Call",email:"Email",meeting:"Meeting",deal:"Deal",contact:"Contact added",visit:"Site visit",note:"Note",handoff:"Handoff",converted:"Became client",reverted:"Back to prospect",stage:"Stage change",owner:"Owner change",research:"Research",created:"Added",next:"Next step",accepted:"Handoff accepted",edit:"Details edited"})[k]||k}
+function kindLabel(k){return({deletetest:"Test account deleted",lane:"Lane",employee:"Employee change",pinreset:"PIN reset",reminder:"Reminder set",followup:"Follow-up done",call:"Call",email:"Email",meeting:"Meeting",deal:"Deal",contact:"Contact added",visit:"Site visit",note:"Note",handoff:"Handoff",converted:"Became client",reverted:"Back to prospect",stage:"Stage change",owner:"Owner change",research:"Research",created:"Added",next:"Next step",accepted:"Handoff accepted",edit:"Details edited"})[k]||k}
 function ownerOpts(sel){return `<option value="">No owner</option>`+[...new Set([...S.team,sel].filter(Boolean))].map(n=>`<option ${n===sel?"selected":""}>${esc(n)}</option>`).join("")}
 
 function renderDrawer(){
@@ -693,6 +705,7 @@ function renderDrawer(){
           <button data-comp="handoff" ${dis}>Hand off</button>
           ${a.type==="client"?`<button data-comp="revert" ${dis}>Move back to prospect</button>`:`<button data-comp="convert" ${dis}>Convert to client</button>`}
           <button data-comp="edit" ${dis}>Edit details</button>
+          ${isAdmin()&&isTestAcct(a)?`<button class="danger" data-act="deltest">Delete test account</button>`:""}
         </div></details>
     </div>
     ${ce?(!own(a).length?`<p class="muted" style="margin:0;font-size:13px">No owner yet. Add yourself as an owner to claim it.</p>`:""):`<p class="rolock">You can view this account. Only its owners (${esc(ownTxt(a))}) and admins can change it. Ask one of them to add you or hand it off.</p>`}`;}
@@ -770,7 +783,27 @@ function openComposer(kind,preset){
   c.scrollIntoView({block:"nearest"});
   const first=c.querySelector("textarea,input:not([type=date]),select");first&&first.focus();
 }
-function closeComposer(){const c=$("#composer");if(c){c.hidden=true;c.innerHTML=""}S.composer=null}
+function closeComposer(){const c=$("#composer");if(c){c.hidden=true;c.innerHTML=""}S.composer=null;clearDraft()}
+const DRAFT_FORMS="#composer,#quickForm,#newForm,#personForm";
+function saveDraft(f){const vals={};f.querySelectorAll("input,select,textarea").forEach(el=>{if(el.type==="radio"){if(el.checked)vals["radio:"+el.name]=el.value}else if(el.type==="checkbox"){if(el.id)vals[el.id]=el.checked}else if(el.id)vals[el.id]=el.value});
+  ls.set("vcrm.draft",JSON.stringify({form:f.id,open:S.open,comp:S.composer,view:S.view,vals,at:Date.now()}))}
+function clearDraft(){try{localStorage.removeItem("vcrm.draft")}catch(e){}}
+function fillDraft(f,vals){Object.entries(vals).forEach(([k,v])=>{if(k.startsWith("radio:")){const r=f.querySelector(`input[name="${k.slice(6)}"][value="${v}"]`);if(r)r.checked=true;return}
+  const el=document.getElementById(k);if(!el)return;if(el.type==="checkbox"){el.checked=!!v;if(k==="rOn"){const rf=document.querySelector(".remfields");if(rf)rf.hidden=!v}}else el.value=v})}
+function hasText(vals){return Object.entries(vals).some(([k,v])=>typeof v==="string"&&v.trim()&&!/Date|Due|Time|Type|Who|Lane|Owner|Stage|Term|list$|owner$|lane$/i.test(k))}
+let restored=false;
+function restoreWork(){if(restored)return;restored=true;
+  let d=null;try{d=JSON.parse(localStorage.getItem("vcrm.draft")||"null")}catch(e){}
+  if(d&&Date.now()-d.at<7*864e5&&hasText(d.vals)){
+    if(d.open&&d.open!=="__new"&&d.open!=="__log"&&!S.accounts.has(d.open)){clearDraft();return}
+    if(d.view&&d.view!==S.view&&!d.open)location.hash=d.view;
+    S.open=d.open;render();
+    setTimeout(()=>{if(d.form==="composer"&&d.comp)openComposer(d.comp);if(d.form==="personForm"){const pf=$("#personForm");if(pf)pf.hidden=false}
+      const f=document.getElementById(d.form);if(f){fillDraft(f,d.vals);toast("Picked up where you left off. Your unsaved work is back.")}},80);
+    return}
+  const o=ls.get("vcrm.open");if(o&&S.accounts.has(o)&&!S.open){S.open=o;render()}}
+document.addEventListener("input",e=>{const f=e.target.closest&&e.target.closest(DRAFT_FORMS);if(f)saveDraft(f)},true);
+document.addEventListener("change",e=>{const f=e.target.closest&&e.target.closest(DRAFT_FORMS);if(f)saveDraft(f)},true);
 
 async function submitComposer(){
   const a=S.accounts.get(S.open);if(!a)return;if(!canEdit(a))return toast("Only owners and admins can change this account.");const k=S.composer,v=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
@@ -830,7 +863,7 @@ async function submitQuick(){
   if(!laneOK(a)&&$("#qType").value!=="note"){const ty=$("#qType").value;S.open=a.id;render();setTimeout(()=>openComposer("touch",ty==="visit"?"visit":"call"),50);return toast("Pick a lane for "+a.company+" first.")}
   if(!S.me){toast("Pick your name at the top first.");return}
   const t=$("#qText").value.trim();if(!t)return toast("Write what happened.");
-  try{await logTouch(a,$("#qType").value,$("#qDate").value||today(),t,"",S.me);toast("Logged to "+a.company);S.open=null;render()}catch(e){}}
+  try{await logTouch(a,$("#qType").value,$("#qDate").value||today(),t,"",S.me);toast("Logged to "+a.company);S.open=null;clearDraft();render()}catch(e){}}
 function readDetails(id){const o={};["company","contact","phone","address","sector","website","list","why"].forEach(f=>{const e=document.getElementById(id+"_"+f);if(e)o[f]=e.value.trim()});return o}
 
 async function addProspect(){
@@ -843,7 +876,7 @@ async function addProspect(){
   const owner=document.getElementById("newForm_owner").value;
   try{await queue("accounts/"+id,()=>db.doc("accounts/"+id).set({...p,...ownPatch(owner?[owner]:[]),lane:document.getElementById("newForm_lane").value,laneConfirmed:!!document.getElementById("newForm_lane").value,stage:"Not researched",type:"prospect",order:999,createdAt:today(),createdBy:S.me||"",updatedAt:nowISO()}));
     await logActivity({accountId:id,kind:"created",text:"Added to the CRM"});
-    S.open=id;toast("Prospect added");render();}catch(e){}
+    S.open=id;clearDraft();ls.set("vcrm.open",id);toast("Prospect added");render();}catch(e){}
 }
 
 /* ---------- events ---------- */
@@ -853,7 +886,7 @@ document.addEventListener("click",async e=>{
   if(t.dataset.panel){if(!isPhone())return;const k=t.dataset.panel,cur=k in S.homeOpen?S.homeOpen[k]:HOME_DEFAULT_OPEN.includes(k);S.homeOpen[k]=!cur;render();return}
   if(t.dataset.done){const r=S.reminders.find(x=>x.id===t.dataset.done);if(!r)return;try{await queue("reminders/"+r.id,()=>db.doc("reminders/"+r.id).update({done:true,doneAt:nowISO(),doneBy:S.me}));if(r.accountId)await logActivity({accountId:r.accountId,kind:"followup",text:`${r.type} completed`});toast("Marked done")}catch(err){}return}
   if(t.dataset.nudge){const n=t.dataset.nudge,why=t.dataset.why||"";try{await db.collection("reminders").add({accountId:"",type:"Catch up",due:today(),time:"",assignee:n,note:"From "+(S.me||"admin")+": "+why,done:false,createdAt:nowISO(),createdBy:S.me,nudge:true});t.textContent="Nudged";t.disabled=true;toast(n+" will see this in My Work")}catch(err){toast(errText(err))}return}
-  if(t.dataset.open){if(S.open!==t.dataset.open)S.actAll=false;S.open=t.dataset.open;S.composer=null;render();return}
+  if(t.dataset.open){if(S.open!==t.dataset.open)S.actAll=false;S.open=t.dataset.open;ls.set("vcrm.open",S.open);closeComposer();render();return}
   if(t.dataset.unown){const a=S.accounts.get(S.open),n=t.dataset.unown;if(!a)return;if(!canEdit(a))return toast("Only owners and admins can change owners.");try{await patchAccount(a.id,ownPatch(own(a).filter(x=>x!==n)));await logActivity({accountId:a.id,kind:"owner",text:`Removed ${n} as owner`});toast(n+" removed")}catch(err){}return}
   if(t.dataset.comp){const m=t.closest("details.more");if(m)m.open=false;openComposer(t.dataset.comp,t.dataset.preset);return}
   if(t.dataset.stage){S.f={...S.f,stage:t.dataset.stage,list:"",owner:"",lane:"",q:""};saveF();location.hash="prospects";return}
@@ -865,13 +898,21 @@ document.addEventListener("click",async e=>{
   if(t.dataset.resetpin){const n=t.dataset.resetpin;if(t.dataset.confirm!=="1"){t.dataset.confirm="1";t.textContent="Confirm reset";setTimeout(()=>{if(t.isConnected){t.dataset.confirm="";t.textContent="Reset PIN"}},4000);return}
     try{const r=await window.crmApi("/api/admin",{action:"resetPin",name:n});if(r.error)throw new Error(r.error);toast(n+" will make a new PIN at next sign in")}catch(err){toast(err.message||"Reset failed")}return}
   const act=t.dataset.act;
-  if(act==="close"){S.open=null;closeComposer();render()}
+  if(act==="close"){S.open=null;try{localStorage.removeItem("vcrm.open")}catch(e){}closeComposer();render()}
   if(act==="cancel")closeComposer();
   if(act==="new"){S.open="__new";render()}
   if(act==="dlxl"){t.disabled=true;t.textContent="Building…";try{const r=await window.crmFetch("/api/export");if(!r.ok){let j={};try{j=await r.json()}catch(x){}throw new Error(j.error||"Export failed")}
     const b=await r.blob(),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=`Vanguard Prospect List ${today()}.xlsx`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast("Excel downloaded")}
     catch(err){toast(err.message||"Export failed")}t.disabled=false;t.textContent="Download Excel";return}
   if(act==="confirmlane"){const a=S.accounts.get(S.open);if(a&&a.lane&&canEdit(a)){try{await setLane(a,a.lane);toast("Lane confirmed: "+a.lane)}catch(err){}}return}
+  if(act==="deltest"||act==="deltestall"){
+    if(t.dataset.confirm!=="1"){t.dataset.confirm="1";t.dataset.label=t.textContent;t.textContent=act==="deltest"?"Tap again to delete":"Tap again to delete them all";setTimeout(()=>{if(t.isConnected){t.dataset.confirm="";t.textContent=t.dataset.label}},5000);return}
+    t.disabled=true;t.textContent="Deleting…";
+    try{const body=act==="deltest"?{action:"deleteTest",id:S.open}:{action:"deleteTest",all:true};const r=await window.crmApi("/api/admin",body);if(r.error)throw new Error(r.error);
+      if(act==="deltest"){S.open=null;try{localStorage.removeItem("vcrm.open")}catch(e){}closeComposer()}
+      toast(r.removed===1?"Test account deleted":`${r.removed} test accounts deleted`);render()}
+    catch(err){toast(err.message||"Delete failed");t.disabled=false;t.textContent=t.dataset.label||"Delete"}
+    return}
   if(act==="signout"||act==="pin"){const m=t.closest("details");if(m)m.open=false}
   if(act==="signout"){window.crmSignOut&&window.crmSignOut()}
   if(act==="pin"){window.crmChangePin&&window.crmChangePin()}
@@ -886,7 +927,7 @@ document.addEventListener("click",async e=>{
 });
 document.addEventListener("click",e=>{document.querySelectorAll("details.more[open],details.usermenu[open]").forEach(d=>{if(!d.contains(e.target))d.open=false})},true);
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"&&S.open){if(S.composer)closeComposer();else{S.open=null;render()}}
+  if(e.key==="Escape"&&S.open){if(S.composer)closeComposer();else{S.open=null;try{localStorage.removeItem("vcrm.open")}catch(e){}render()}}
   if(e.key==="Enter"&&e.target.matches(".tr.row")){S.open=e.target.dataset.open;render()}
 });
 document.addEventListener("submit",e=>{e.preventDefault();
@@ -952,7 +993,7 @@ async function submitPerson(){
   if(p.email){const dup=allPeople().find(x=>(x.email||"").toLowerCase()===p.email);if(dup)return toast(`${p.email} is already on file for ${dup.name} at ${dup.company}.`)}
   if((a.people||[]).some(x=>(x.name||"").toLowerCase()===p.name.toLowerCase()))return toast(p.name+" is already listed at "+a.company+".");
   Object.keys(p).forEach(k=>{if(!p[k])delete p[k]});
-  try{await patchAccount(a.id,{people:[...(a.people||[]),p]});await logActivity({accountId:a.id,kind:"contact",text:p.name+(p.title?", "+p.title:"")});toast(p.name+" added to "+a.company);$("#personForm").reset();$("#personForm").hidden=true;$("#npMatch").textContent=""}catch(e){}}
+  try{await patchAccount(a.id,{people:[...(a.people||[]),p]});await logActivity({accountId:a.id,kind:"contact",text:p.name+(p.title?", "+p.title:"")});toast(p.name+" added to "+a.company);$("#personForm").reset();$("#personForm").hidden=true;$("#npMatch").textContent="";clearDraft()}catch(e){}}
 
 /* ---------- board ---------- */
 function boardHTML(){
@@ -1046,7 +1087,7 @@ window.startApp=function(adapter,me){
   db.collection("accounts").onSnapshot(snap=>{
     S.accounts=new Map(snap.docs.map(d=>[d.id,{id:d.id,...d.data()}]));
     if(!snap.metadata.fromCache){S.loaded=true;clearTimeout(slow);notice("")}
-    render();
+    render();restoreWork();
   },fail);
   db.collection("activity").orderBy("at","desc").limit(1000).onSnapshot(snap=>{S.activity=snap.docs.map(d=>({id:d.id,...d.data()}));render()},fail);
   db.collection("reminders").onSnapshot(snap=>{S.reminders=snap.docs.map(d=>({id:d.id,...d.data()}));render()},fail);
@@ -1056,7 +1097,8 @@ window.startApp=function(adapter,me){
 };
 </script>
 
-<div id="login" class="login" role="dialog" aria-label="Sign in">
+<div id="splash" class="splash" aria-live="polite"><img src="/vanguard-wordmark.svg" alt="Vanguard"><p>Loading your CRM</p></div>
+<div id="login" class="login" role="dialog" aria-label="Sign in" hidden>
   <form class="login-card" id="loginForm" autocomplete="off">
     <img src="/vanguard-wordmark.svg" alt="Vanguard" class="login-logo">
         <p class="muted login-sub" id="lgSub">Sign in with your name and PIN.</p>
@@ -1085,7 +1127,7 @@ window.startApp=function(adapter,me){
 </style>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getAuth,signInWithCustomToken,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getAuth,signInWithCustomToken,onAuthStateChanged,signOut,setPersistence,browserLocalPersistence,indexedDBLocalPersistence} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getFirestore,collection,doc,onSnapshot,query,orderBy,limit,addDoc,setDoc,updateDoc,deleteDoc,getDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $=s=>document.querySelector(s);
@@ -1142,7 +1184,7 @@ $("#loginForm").addEventListener("submit",async e=>{
   L.go.disabled=false;});
 
 if("serviceWorker" in navigator){navigator.serviceWorker.register("/sw.js").catch(()=>{})}
-window.crmSignOut=async()=>{await signOut(auth);location.reload()};
+window.crmSignOut=async()=>{try{localStorage.removeItem("vcrm.draft");localStorage.removeItem("vcrm.open")}catch(e){}await signOut(auth);location.reload()};
 window.crmChangePin=()=>showLogin("change");
 
 /* Firestore adapter: same calls the app already uses, stored under crm_ collections */
@@ -1161,14 +1203,18 @@ function adapter(){return{
 try{
   const r=await fetch("/api/config");const cfg=await r.json();if(cfg.error)throw new Error(cfg.error);
   const app=initializeApp(cfg,"vanguard-crm");auth=getAuth(app);fs=getFirestore(app);
+  await setPersistence(auth,indexedDBLocalPersistence).catch(()=>setPersistence(auth,browserLocalPersistence)).catch(()=>{});
+  const splash=document.getElementById("splash");
   onAuthStateChanged(auth,async u=>{
-    if(!u){if(started){location.reload();return}showLogin("signin");loadNames();return}
+    if(!u){if(started){location.reload();return}splash.hidden=true;showLogin("signin");loadNames();return}
     const t=await u.getIdTokenResult();
     if(!t.claims.crm){await signOut(auth);return}
-    L.el.hidden=true;
+    if(!t.claims.auth_time||Date.now()/1000-Number(t.claims.auth_time)>30*86400){await signOut(auth);if(!started){splash.hidden=true;showLogin("signin");loadNames();L.err.textContent="For security, everyone signs in again every 30 days. Enter your PIN to continue."}return}
+    L.el.hidden=true;splash.hidden=true;
     if(!started){started=true;window.startApp(adapter(),{uid:u.uid,name:t.claims.crmName})}
+    clearInterval(window._sess);window._sess=setInterval(async()=>{const c=await auth.currentUser?.getIdTokenResult();if(c&&Date.now()/1000-Number(c.claims.auth_time)>30*86400){await signOut(auth)}},3600*1000);
   });
-}catch(e){showLogin("signin");L.err.textContent=e.message||"The CRM isn't configured yet.";L.go.disabled=true}
+}catch(e){document.getElementById("splash").hidden=true;showLogin("signin");L.err.textContent=e.message||"The CRM isn't configured yet.";L.go.disabled=true}
 </script>
 
 </body>

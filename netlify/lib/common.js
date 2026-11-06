@@ -20,6 +20,7 @@ const slug = (name) =>
   String(name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
 
 const PIN_RE = /^\d{4,6}$/;
+const SESSION_DAYS = 30; // everyone signs in again with their PIN after this
 const ITER = 150000;
 
 function hashPin(pin, salt) {
@@ -59,6 +60,7 @@ async function caller(event) {
   try {
     const t = await auth.verifyIdToken(m[1]);
     if (!t.crm || !t.crmId) return null;
+    if (!t.auth_time || Date.now() / 1000 - t.auth_time > SESSION_DAYS * 86400) return null;
     const u = await db.collection(USERS).doc(t.crmId).get();
     if (!u.exists || u.data().active === false) return null;
     return { id: t.crmId, ...u.data() };

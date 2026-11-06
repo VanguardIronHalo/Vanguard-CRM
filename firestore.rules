@@ -4,11 +4,15 @@ rules_version = '2';
 // An account with no owners can be claimed by whoever adds themselves.
 // This database is the permanent record: nothing is ever deleted, by anyone.
 // Accounts close as Parked or Lost, deals as Lost, follow-ups as done, employees as removed.
+// Everyone must sign in again with their PIN every 30 days.
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Signed in through the CRM's PIN check, within the last 30 days.
+    // auth_time is stamped by Firebase at sign in and can't be changed by the device.
     function crm() {
-      return request.auth != null && request.auth.token.crm == true;
+      return request.auth != null && request.auth.token.crm == true
+        && request.time < timestamp.value(request.auth.token.auth_time * 1000) + duration.value(30, 'd');
     }
     function me() {
       return request.auth.token.crmName;

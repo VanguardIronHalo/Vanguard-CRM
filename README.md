@@ -17,7 +17,7 @@ Matthew Lambert, Vice President, Vanguard Security LLC
 
 ### Permanent record
 
-The original Excel prospect list gets imported once at setup and is retired after that. From then on, Firebase is the master record and it only grows. Nothing is ever deleted, by anyone, including admins, and the database rules enforce this. Records close out instead: accounts move to Parked or Lost, deals to Lost, follow-ups get marked done, employees get marked removed. Every visit, call, note, stage change, owner change, handoff and edit is logged with who did it and when. Detail edits record the old and new values. Download Excel is still there, but it's a snapshot for reports or a backup, not something to edit.
+The original Excel prospect list gets imported once at setup and is retired after that. From then on, Firebase is the master record and it only grows. Nothing is ever deleted, by anyone, including admins, and the database rules enforce this. Records close out instead: accounts move to Parked or Lost, deals to Lost, follow-ups get marked done, employees get marked removed. Every visit, call, note, stage change, owner change, handoff and edit is logged with who did it and when. Detail edits record the old and new values. The one exception: admins can delete test accounts (company name starting with "Test") from the account's More menu or with Delete all test accounts on the Employees page. The server refuses anything else, and the audit log keeps a line for each test account removed. Download Excel is still there, but it's a snapshot for reports or a backup, not something to edit.
 
 ### Files
 
