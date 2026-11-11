@@ -470,7 +470,10 @@ const ACTIVE=["Contacted","Meeting","Proposal","Won","Current client"];
 // Timelines belong to the people working the accounts. Nothing goes overdue on a system clock.
 // An account needs attention only when its owner's own follow-up date has passed, or an owner hasn't set one yet.
 const OPEN_ACCT=a=>own(a).length&&a.stage!=="Parked"&&a.stage!=="Lost";
-function acctDue(a){return [a.nextDate,...openRems().filter(r=>r.accountId===a.id).map(r=>r.due)].filter(Boolean).sort()[0]||""}
+// A next step counts as met once someone logs contact on or after its date.
+const nextOpen=a=>a.nextDate&&!(a.lastTouch&&a.lastTouch>=a.nextDate)?a.nextDate:"";
+const nextOver=a=>{const d=nextOpen(a);return !!d&&d<today()};
+function acctDue(a){return [nextOpen(a),...openRems().filter(r=>r.accountId===a.id).map(r=>r.due)].filter(Boolean).sort()[0]||""}
 function needsAttention(){const t=today();
   return accts().filter(OPEN_ACCT).map(a=>{const due=acctDue(a);return {a,due,over:!!due&&due<t,none:!due,lt:lastTouch(a)}})
     .filter(x=>x.over||x.none).sort((x,y)=>(y.over-x.over)||String(x.due).localeCompare(y.due));}
@@ -601,7 +604,7 @@ function homeHTML(){
     <div class="panel na"><h3>Needs attention${S.me?" · yours":""}</h3><p class="muted" style="margin:-4px 0 8px;font-size:13px">Owned accounts past the follow-up date their owner picked, or with no date picked yet.</p><div class="mini">${naMine.slice(0,10).map(x=>item(x.a,ageTag(x),esc((own(x.a).length?ownTxt(x.a):"No owner")+" · "+x.a.stage+(x.lt?" · last touch "+fmtDate(x.lt):"")))).join("")||'<div class="empty">Every account you own has a follow-up date, and none have passed.</div>'}${naMine.length>10?`<div class="empty">${naMine.length-10} more</div>`:""}</div></div>
     <div class="panel"><h3>Follow-ups due in 7 days</h3><div class="rems">${openRems().filter(r=>r.due<=new Date(Date.now()+7*864e5).toLocaleDateString("en-CA")).sort((a,b)=>String(a.due).localeCompare(b.due)).slice(0,10).map(r=>remRow(r,true)).join("")||'<div class="empty">No follow-ups scheduled this week.</div>'}</div></div>
     <div class="panel"><h3>Call this week</h3><div class="mini">${ctw.map(a=>item(a,`<span class="pill ${stCls(a.stage)}">${esc(a.stage)}</span>`,own(a).length?esc((own(a).length>1?"Owners: ":"Owner: ")+ownTxt(a)):'<span class="unassigned">No owner yet</span>')).join("")||'<div class="empty">Nothing on this list.</div>'}</div></div>
-    <div class="panel"><h3>Next steps due in 7 days</h3><div class="mini">${due.map(a=>item(a,`<span class="mono ${a.nextDate<t?"due-over":""}">${a.nextDate<t?"Overdue ":""}${fmtDate(a.nextDate)}</span>`,esc((own(a).length?ownTxt(a)+": ":"")+(a.nextAction||"")))).join("")||'<div class="empty">No next steps are scheduled. Set one from any account.</div>'}</div></div>
+    <div class="panel"><h3>Next steps due in 7 days</h3><div class="mini">${due.map(a=>item(a,`<span class="mono ${nextOver(a)?"due-over":""}">${nextOver(a)?"Overdue ":""}${fmtDate(a.nextDate)}</span>`,esc((own(a).length?ownTxt(a)+": ":"")+(a.nextAction||"")))).join("")||'<div class="empty">No next steps are scheduled. Set one from any account.</div>'}</div></div>
     <div class="panel"><h3>Handoffs waiting</h3><div class="mini">${ho.map(a=>item(a,`<span class="mono">${fmtDate(a.handoff.at)}</span>`,esc(`${a.handoff.from||"Unassigned"} to ${a.handoff.to}`))).join("")||'<div class="empty">No leads are waiting to be accepted.</div>'}</div></div>
     <div class="panel"><h3>Recent activity</h3><div class="mini">${recent.map(x=>{const a=S.accounts.get(x.accountId);return a?item(a,`<span class="mono">${fmtDate(x.at)}</span>`,esc(`${kindLabel(x.kind)} by ${x.by||"someone"}${x.text?": "+x.text.slice(0,90):""}`)):""}).join("")||'<div class="empty">Visits, notes and handoffs will show here as the team logs them.</div>'}</div></div>
   </div>`;}
@@ -636,7 +639,7 @@ function listRows(view){
     <div><span class="pill ${stCls(a.stage)}">${esc(a.stage)}</span></div>
     <div class="c-owner ell">${own(a).length?esc(ownTxt(a)):'<span class="unassigned">No owner</span>'}</div>
     <div class="c-next ell muted">${esc(a.nextAction||"")}</div>
-    <div class="c-date mono ${a.nextDate&&a.nextDate<t?"due-over":""}">${fmtDate(a.nextDate)}</div>
+    <div class="c-date mono ${nextOver(a)?"due-over":""}">${fmtDate(a.nextDate)}</div>
     <div class="c-visit mono muted">${a.lastVisit?"Visited "+fmtDate(a.lastVisit):lastTouch(a)?"Touched "+fmtDate(lastTouch(a)):""}</div>
   </div>`).join("")+more;}
 
@@ -720,7 +723,7 @@ function bodyHTML(a){
   const ev=actFor(a.id),t=today();
   const ho=a.handoff&&!a.handoff.accepted?`<div class="handoff"><div><b>Handed off to ${esc(a.handoff.to)}</b> by ${esc(a.handoff.from||"Unassigned")} on ${fmtDate(a.handoff.at)}.${a.handoff.note?`<br>${esc(a.handoff.note)}`:""}</div>${S.me===a.handoff.to?`<button class="btn pri" data-act="accept">Accept lead</button>`:`<span class="lbl">Waiting on ${esc(a.handoff.to)}</span>`}</div>`:"";
   return `${ho}
-  <div class="nextbox"><div class="txt"><span class="lbl">Next</span><div>${a.nextAction?esc(a.nextAction):'<span class="muted">Nothing scheduled. Use Follow-up to set the next step.</span>'}</div></div>${a.nextDate?`<span class="mono ${a.nextDate<t?"due-over":""}">${a.nextDate<t?"Overdue · ":""}${fmtDate(a.nextDate)}</span>`:""}</div>
+  <div class="nextbox"><div class="txt"><span class="lbl">Next</span><div>${a.nextAction?esc(a.nextAction):'<span class="muted">Nothing scheduled. Use Follow-up to set the next step.</span>'}</div></div>${a.nextDate?`<span class="mono ${nextOver(a)?"due-over":""}">${nextOver(a)?"Overdue · ":""}${fmtDate(a.nextDate)}</span>`:""}</div>
   ${(()=>{const ds=S.deals.filter(d=>d.accountId===a.id);return ds.length?`<section><div class="sechead"><h3>Deals</h3></div><div class="deals">${ds.map(d=>`<div class="deal"><div><b>${esc(d.name)}</b><div class="sub">${esc(d.stage)}${d.owner?" · "+esc(d.owner):""}${d.closeDate?" · close "+fmtDate(d.closeDate):""}</div></div><div style="text-align:right"><div class="v">${money(d.value)}<span class="muted" style="font-size:13px">/${d.term==="monthly"?"mo":"yr"}</span></div><select data-dealstage="${esc(d.id)}" aria-label="Deal stage" ${canEdit(a)?"":"disabled"}>${DEAL_STAGES.map(s=>`<option ${s===d.stage?"selected":""}>${s}</option>`).join("")}</select></div></div>`).join("")}</div></section>`:""})()}
   ${(()=>{const rs=remsFor(a.id);return rs.length?`<section><div class="sechead"><h3>Follow-ups</h3></div><div class="rems">${rs.map(r=>remRow(r,false)).join("")}</div></section>`:""})()}
   <section><h3>Activity${ev.length?` <span class="muted" style="text-transform:none;letter-spacing:0">(${ev.length})</span>`:""}</h3><div class="timeline" style="margin-top:12px">${(S.actAll?ev:ev.slice(0,5)).map(x=>`<div class="ev k-${esc(x.kind)}"><div class="h"><span class="kind">${esc(kindLabel(x.kind))}</span><span class="mono muted">${fmtDate(x.date||x.at)}</span><span class="muted">${esc(x.by||"")}</span></div>${x.text?`<p>${esc(x.text)}</p>`:""}${x.contactMet?`<p class="muted">Met with ${esc(x.contactMet)}</p>`:""}</div>`).join("")||'<p class="muted">No activity yet. Use Log activity after your first call or visit.</p>'}</div>${ev.length>5?`<button class="linkish" data-act="actall">${S.actAll?"Show latest 5":"Show all "+ev.length}</button>`:""}</section>
@@ -1026,7 +1029,7 @@ function paceFor(n){
   const r={n,owned:owned.length,clients:owned.filter(a=>a.type==="client").length,
     t7:touch.filter(x=>inDays(x,7)).length,t30:touch.filter(x=>inDays(x,30)).length,v30:touch.filter(x=>x.kind==="visit"&&inDays(x,30)).length,
     last:acts[0]?acts[0].at:"",
-    over:new Set([...openRems().filter(x=>x.assignee===n&&x.due<t).map(x=>x.accountId||x.id),...owned.filter(a=>a.nextDate&&a.nextDate<t).map(a=>a.id)]).size,
+    over:new Set([...openRems().filter(x=>x.assignee===n&&x.due<t).map(x=>x.accountId||x.id),...owned.filter(nextOver).map(a=>a.id)]).size,
     noDate:needsAttention().filter(x=>x.none&&owns(x.a,n)).length,
     waitHO:accts().filter(a=>a.handoff&&!a.handoff.accepted&&a.handoff.to===n&&daysSince(a.handoff.at)>=2).length,
     openVal:S.deals.filter(d=>d.owner===n&&!["Won","Lost"].includes(d.stage)).reduce((s,d)=>s+annual(d),0),
