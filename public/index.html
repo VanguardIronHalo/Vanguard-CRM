@@ -467,10 +467,13 @@ const annual=d=>(Number(d.value)||0)*(d.term==="monthly"?12:1);
 const lastTouch=a=>[a.lastTouch,a.lastVisit,a.clientSince].filter(Boolean).sort().pop()||"";
 const daysSince=d=>d?Math.floor((Date.now()-new Date(d.length===10?d+"T12:00:00":d))/864e5):null;
 const ACTIVE=["Contacted","Meeting","Proposal","Won","Current client"];
-function needsAttention(){
-  return accts().filter(a=>a.type==="client"||ACTIVE.includes(a.stage)||(own(a).length&&a.stage!=="Parked"&&a.stage!=="Lost"))
-    .map(a=>{const lt=lastTouch(a),d=daysSince(lt||a.assignedAt);return {a,lt,d:d==null?9999:d}})
-    .filter(x=>x.d>=30).sort((x,y)=>y.d-x.d);}
+// Timelines belong to the people working the accounts. Nothing goes overdue on a system clock.
+// An account needs attention only when its owner's own follow-up date has passed, or an owner hasn't set one yet.
+const OPEN_ACCT=a=>own(a).length&&a.stage!=="Parked"&&a.stage!=="Lost";
+function acctDue(a){return [a.nextDate,...openRems().filter(r=>r.accountId===a.id).map(r=>r.due)].filter(Boolean).sort()[0]||""}
+function needsAttention(){const t=today();
+  return accts().filter(OPEN_ACCT).map(a=>{const due=acctDue(a);return {a,due,over:!!due&&due<t,none:!due,lt:lastTouch(a)}})
+    .filter(x=>x.over||x.none).sort((x,y)=>(y.over-x.over)||String(x.due).localeCompare(y.due));}
 const isAdminView=v=>ADMIN_VIEWS.some(x=>x[0]===v);
 const openRems=()=>S.reminders.filter(r=>!r.done);
 const remsFor=id=>openRems().filter(r=>r.accountId===id).sort((a,b)=>String(a.due).localeCompare(b.due));
@@ -485,19 +488,19 @@ function remRow(r,showCo){const a=S.accounts.get(r.accountId),t=today(),over=r.d
     <span class="mono ${over?"due-over":""}">${over?"Overdue · ":dueToday?"Today · ":""}${fmtDate(r.due)}${r.time?" "+esc(r.time):""}</span>${r.assignee&&r.assignee!==S.me?`<span class="muted">for ${esc(r.assignee)}</span>`:""}
     ${r.note?`<div class="sub">${esc(r.note)}</div>`:""}</div>
     <div class="rem-act"><a class="btn ghost" href="${esc(gcal(r))}" target="_blank" rel="noopener">Add to calendar</a>${canCloseRem(r)?`<button class="btn" data-done="${esc(r.id)}">Done</button>`:""}</div></div>`;}
-function remFields(on,a){const d=new Date(Date.now()+3*864e5).toLocaleDateString("en-CA");
+function remFields(on,a){const d="";
   return `<fieldset class="remset"><legend><label class="chk"><input type="checkbox" id="rOn" ${on?"checked":""}> Set a follow-up</label></legend>
     <div class="remfields" ${on?"":"hidden"}><div class="row2"><label><span class="lbl">What's next</span><select id="rType">${REM_TYPES.filter(x=>x!=="Catch up").map(x=>`<option>${x}</option>`).join("")}</select></label>
-    <label><span class="lbl">Date</span><input type="date" id="rDue" value="${d}"></label><label><span class="lbl">Time (optional)</span><input type="time" id="rTime"></label></div>
+    <label><span class="lbl">Date</span><input type="date" id="rDue" value="${d}" min="${today()}"></label><label><span class="lbl">Time (optional)</span><input type="time" id="rTime"></label></div>
     <div class="row2"><label><span class="lbl">For</span><select id="rWho">${ownerOpts(S.me)}</select></label><label><span class="lbl">Note</span><input type="text" id="rNote" placeholder="Send Zoom link, bring pricing for 3 sites"></label></div></div></fieldset>`;}
 async function addReminderFromForm(a){
   const on=document.getElementById("rOn");if(on&&!on.checked)return;
   const v=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
-  const r={accountId:a?a.id:"",type:v("rType")||"Follow-up call",due:v("rDue")||today(),time:v("rTime"),assignee:v("rWho")||S.me,note:v("rNote"),done:false,createdAt:nowISO(),createdBy:S.me};
+  const r={accountId:a?a.id:"",type:v("rType")||"Follow-up call",due:v("rDue"),time:v("rTime"),assignee:v("rWho")||S.me,note:v("rNote"),done:false,createdAt:nowISO(),createdBy:S.me};
   await db.collection("reminders").add(r).catch(e=>{toast(errText(e));throw e});
   if(a){await logActivity({accountId:a.id,kind:"reminder",text:`${r.type} for ${r.assignee||"unassigned"} on ${fmtDate(r.due)}${r.time?" at "+r.time:""}${r.note?". "+r.note:""}`});
     if(!a.nextDate||r.due<=a.nextDate||a.nextDate<today())await patchAccount(a.id,{nextAction:r.type+(r.note?": "+r.note:""),nextDate:r.due});}}
-function ageTag(d){const b=d>=90?90:d>=60?60:30;return `<span class="age age-${b}">${d>=9999?"Never touched":d+" days"}</span>`}
+function ageTag(x){return x.over?`<span class="mono due-over">Overdue · ${fmtDate(x.due)}</span>`:`<span class="age age-30">No date set</span>`}
 function allPeople(){const r=[];accts().forEach(a=>(a.people||[]).forEach((p,i)=>r.push({...p,accountId:a.id,company:a.company,i})));return r}
 const domainOf=u=>String(u||"").toLowerCase().replace(/^https?:\/\//,"").replace(/^www\./,"").split(/[\/?#]/)[0];
 function lists(){return [...new Set(accts().map(a=>a.list).filter(Boolean))].sort((a,b)=>listRank(a)-listRank(b))}
@@ -595,7 +598,7 @@ function homeHTML(){
       <div><div class="tilebig">${money(openDeals.reduce((s,d)=>s+annual(d),0))}</div><span class="lbl">Open, per year · ${openDeals.length} deal${openDeals.length===1?"":"s"}</span></div>
       <div><div class="tilebig">${money(wonDeals.reduce((s,d)=>s+annual(d),0))}</div><span class="lbl">Won, per year · ${wonDeals.length}</span></div></div>
       <div class="mini" style="margin-top:10px">${openDeals.sort((a,b)=>String(a.closeDate||"9").localeCompare(b.closeDate||"9")).slice(0,6).map(d=>{const a=S.accounts.get(d.accountId);return a?item(a,`<span class="mono">${money(annual(d))}/yr</span>`,esc(`${d.name} · ${d.stage}${d.closeDate?" · close "+fmtDate(d.closeDate):""}`)):""}).join("")||'<div class="empty">No open deals. Add one from any account.</div>'}</div></div>
-    <div class="panel na"><h3>Needs attention${S.me?" · yours":""}</h3><p class="muted" style="margin:-4px 0 8px;font-size:13px">Clients, active prospects and owned leads with no call, email, meeting, visit or note in 30+ days.</p><div class="mini">${naMine.slice(0,10).map(x=>item(x.a,ageTag(x.d),esc((own(x.a).length?ownTxt(x.a):"No owner")+" · "+x.a.stage+(x.lt?" · last touch "+fmtDate(x.lt):"")))).join("")||'<div class="empty">Every active account has been touched in the last 30 days.</div>'}${naMine.length>10?`<div class="empty">${naMine.length-10} more</div>`:""}</div></div>
+    <div class="panel na"><h3>Needs attention${S.me?" · yours":""}</h3><p class="muted" style="margin:-4px 0 8px;font-size:13px">Owned accounts past the follow-up date their owner picked, or with no date picked yet.</p><div class="mini">${naMine.slice(0,10).map(x=>item(x.a,ageTag(x),esc((own(x.a).length?ownTxt(x.a):"No owner")+" · "+x.a.stage+(x.lt?" · last touch "+fmtDate(x.lt):"")))).join("")||'<div class="empty">Every account you own has a follow-up date, and none have passed.</div>'}${naMine.length>10?`<div class="empty">${naMine.length-10} more</div>`:""}</div></div>
     <div class="panel"><h3>Follow-ups due in 7 days</h3><div class="rems">${openRems().filter(r=>r.due<=new Date(Date.now()+7*864e5).toLocaleDateString("en-CA")).sort((a,b)=>String(a.due).localeCompare(b.due)).slice(0,10).map(r=>remRow(r,true)).join("")||'<div class="empty">No follow-ups scheduled this week.</div>'}</div></div>
     <div class="panel"><h3>Call this week</h3><div class="mini">${ctw.map(a=>item(a,`<span class="pill ${stCls(a.stage)}">${esc(a.stage)}</span>`,own(a).length?esc((own(a).length>1?"Owners: ":"Owner: ")+ownTxt(a)):'<span class="unassigned">No owner yet</span>')).join("")||'<div class="empty">Nothing on this list.</div>'}</div></div>
     <div class="panel"><h3>Next steps due in 7 days</h3><div class="mini">${due.map(a=>item(a,`<span class="mono ${a.nextDate<t?"due-over":""}">${a.nextDate<t?"Overdue ":""}${fmtDate(a.nextDate)}</span>`,esc((own(a).length?ownTxt(a)+": ":"")+(a.nextAction||"")))).join("")||'<div class="empty">No next steps are scheduled. Set one from any account.</div>'}</div></div>
@@ -813,7 +816,8 @@ async function submitComposer(){
   if(k==="touch"){const d=v("cDate"),ty=(document.querySelector('input[name="cType"]:checked')||{}).value||"call";if(!d)return toast("Enter the date.");
     if(ty==="note"&&!v("cText"))return toast("Write the note first.");
     if(!laneOK(a)&&ty!=="note"){const ln=v("cLane");if(!ln)return toast("Pick the lane before logging contact.");await setLane(a,ln);}
-    await logTouch(a,ty,d,v("cText"),"",by);await addReminderFromForm(a);toast((TOUCH_TYPES.find(x=>x[0]===ty)||[,"Note"])[1]+(ty==="note"?" saved":" logged")+(document.getElementById("rOn")&&document.getElementById("rOn").checked?" and reminder set":""));}
+    const ron=document.getElementById("rOn");if(ron&&ron.checked&&!v("rDue"))return toast("Pick the follow-up date on the calendar.");
+    await logTouch(a,ty,d,v("cText"),"",by);if(ty!=="note"&&a.nextDate&&d>=a.nextDate&&canEdit(a))await patchAccount(a.id,{nextAction:"",nextDate:""});await addReminderFromForm(S.accounts.get(a.id)||a);toast((TOUCH_TYPES.find(x=>x[0]===ty)||[,"Note"])[1]+(ty==="note"?" saved":" logged")+(document.getElementById("rOn")&&document.getElementById("rOn").checked?" and reminder set":""));}
   if(k==="remind"){if(!v("rDue"))return toast("Pick a date for the follow-up.");await addReminderFromForm(a);toast("Follow-up set");}
   if(k==="note"){const t=v("cText");if(!t)return toast("Write the note first.");await logTouch(a,"note",today(),t,"",S.me);toast("Note saved");}
   if(k==="deal"){const n=v("dName"),val=parseFloat(v("dValue").replace(/[$,\s]/g,""));if(!n)return toast("Name the deal.");if(!(val>=0))return toast("Enter the deal value as a number.");
@@ -884,7 +888,9 @@ document.addEventListener("click",async e=>{
   const t=e.target.closest("[data-open],[data-act],[data-comp],[data-stage],[data-goto],[data-sort],[data-copy],[data-rm],[data-unown],[data-done],[data-nudge],[data-resetpin],[data-panel],[data-panelall]");if(!t)return;
   if(t.dataset.panelall){const k=t.dataset.panelall+"#all";S.homeOpen[k]=!S.homeOpen[k];render();return}
   if(t.dataset.panel){if(!isPhone())return;const k=t.dataset.panel,cur=k in S.homeOpen?S.homeOpen[k]:HOME_DEFAULT_OPEN.includes(k);S.homeOpen[k]=!cur;render();return}
-  if(t.dataset.done){const r=S.reminders.find(x=>x.id===t.dataset.done);if(!r)return;try{await queue("reminders/"+r.id,()=>db.doc("reminders/"+r.id).update({done:true,doneAt:nowISO(),doneBy:S.me}));if(r.accountId)await logActivity({accountId:r.accountId,kind:"followup",text:`${r.type} completed`});toast("Marked done")}catch(err){}return}
+  if(t.dataset.done){const r=S.reminders.find(x=>x.id===t.dataset.done);if(!r)return;try{await queue("reminders/"+r.id,()=>db.doc("reminders/"+r.id).update({done:true,doneAt:nowISO(),doneBy:S.me}));if(r.accountId){await logActivity({accountId:r.accountId,kind:"followup",text:`${r.type} completed`});const a=S.accounts.get(r.accountId);
+    if(a&&canEdit(a)&&a.nextDate&&a.nextDate<=r.due){const nx=openRems().filter(x=>x.accountId===a.id&&x.id!==r.id&&!x.done).sort((x,y)=>String(x.due).localeCompare(y.due))[0];
+      await patchAccount(a.id,nx?{nextAction:nx.type+(nx.note?": "+nx.note:""),nextDate:nx.due}:{nextAction:"",nextDate:""});}}toast("Marked done")}catch(err){}return}
   if(t.dataset.nudge){const n=t.dataset.nudge,why=t.dataset.why||"";try{await db.collection("reminders").add({accountId:"",type:"Catch up",due:today(),time:"",assignee:n,note:"From "+(S.me||"admin")+": "+why,done:false,createdAt:nowISO(),createdBy:S.me,nudge:true});t.textContent="Nudged";t.disabled=true;toast(n+" will see this in My Work")}catch(err){toast(errText(err))}return}
   if(t.dataset.open){if(S.open!==t.dataset.open)S.actAll=false;S.open=t.dataset.open;ls.set("vcrm.open",S.open);closeComposer();render();return}
   if(t.dataset.unown){const a=S.accounts.get(S.open),n=t.dataset.unown;if(!a)return;if(!canEdit(a))return toast("Only owners and admins can change owners.");try{await patchAccount(a.id,ownPatch(own(a).filter(x=>x!==n)));await logActivity({accountId:a.id,kind:"owner",text:`Removed ${n} as owner`});toast(n+" removed")}catch(err){}return}
@@ -1020,20 +1026,17 @@ function paceFor(n){
   const r={n,owned:owned.length,clients:owned.filter(a=>a.type==="client").length,
     t7:touch.filter(x=>inDays(x,7)).length,t30:touch.filter(x=>inDays(x,30)).length,v30:touch.filter(x=>x.kind==="visit"&&inDays(x,30)).length,
     last:acts[0]?acts[0].at:"",
-    overRem:openRems().filter(x=>x.assignee===n&&x.due<t).length,
-    overNext:owned.filter(a=>a.nextDate&&a.nextDate<t).length,
-    stale:needsAttention().filter(x=>owns(x.a,n)).length,
+    over:new Set([...openRems().filter(x=>x.assignee===n&&x.due<t).map(x=>x.accountId||x.id),...owned.filter(a=>a.nextDate&&a.nextDate<t).map(a=>a.id)]).size,
+    noDate:needsAttention().filter(x=>x.none&&owns(x.a,n)).length,
     waitHO:accts().filter(a=>a.handoff&&!a.handoff.accepted&&a.handoff.to===n&&daysSince(a.handoff.at)>=2).length,
     openVal:S.deals.filter(d=>d.owner===n&&!["Won","Lost"].includes(d.stage)).reduce((s,d)=>s+annual(d),0),
     weeks:[5,4,3,2,1,0].map(w=>touch.filter(x=>{const age=(now-new Date(x.at))/864e5;return age>=w*7&&age<(w+1)*7}).length)};
   const why=[];
-  if(r.overRem)why.push(`${r.overRem} overdue follow-up${r.overRem>1?"s":""}`);
-  if(r.overNext)why.push(`${r.overNext} overdue next step${r.overNext>1?"s":""}`);
-  if(r.stale)why.push(`${r.stale} account${r.stale>1?"s":""} untouched 30+ days`);
+  if(r.over)why.push(`${r.over} past the follow-up date they set`);
+  if(r.noDate)why.push(`${r.noDate} account${r.noDate>1?"s":""} with no follow-up date yet`);
   if(r.waitHO)why.push(`${r.waitHO} handoff${r.waitHO>1?"s":""} not accepted`);
-  if(r.owned&&!r.t7)why.push("no calls, emails, visits or notes this week");
   r.why=why;
-  r.status=!r.owned&&!r.t30?"idle":(r.overRem+r.overNext>=3||r.stale>=5||r.waitHO>0||(r.owned&&!r.t7&&(!r.last||daysSince(r.last)>=7)))?"behind":why.length?"watch":"pace";
+  r.status=!r.owned&&!r.t30?"idle":r.over?"behind":why.length?"watch":"pace";
   return r;}
 function spark(w){const m=Math.max(1,...w);return `<svg class="spark" viewBox="0 0 96 30" width="96" height="30" role="img" aria-label="Touches per week, last 6 weeks: ${w.join(", ")}">${w.map((v,i)=>`<rect x="${i*16+1}" y="${28-Math.round(v/m*24)}" width="12" height="${Math.max(1,Math.round(v/m*24))}" rx="2" class="${i===5?"now":""}"></rect>`).join("")}</svg>`}
 function paceHTML(){
@@ -1041,12 +1044,12 @@ function paceHTML(){
   const all=S.activity.filter(x=>TOUCHK.includes(x.kind)),now=Date.now();
   const wk=all.filter(x=>now-new Date(x.at)<7*864e5);
   const lbl={behind:"Behind",watch:"Watch",pace:"On pace",idle:"No accounts yet"};
-  return `<h2>Team pace</h2><p class="muted" style="max-width:70ch">Built from what each person logs in the CRM. Behind means three or more overdue items, five or more accounts untouched for 30 days, a handoff left waiting two days, or nothing logged for a week while holding accounts. Nudge sends them a catch up item in My Work with the reasons.</p>
+  return `<h2>Team pace</h2><p class="muted" style="max-width:70ch">Built from what each person logs in the CRM. Each person sets their own timeline by picking a follow-up date on the calendar. Behind means a date they picked has passed. Watch means an account they own has no date yet, or a handoff to them is waiting. Nudge sends them a catch up item in My Work with the reasons.</p>
   <div class="stagebar" style="margin-top:14px">
     <div class="stat"><span class="lbl">Touches this week</span><b>${wk.length}</b></div>
     <div class="stat"><span class="lbl">Site visits this week</span><b>${wk.filter(x=>x.kind==="visit").length}</b></div>
     <div class="stat"><span class="lbl">Overdue follow-ups</span><b class="${openRems().some(r=>r.due<today())?"due-over":""}">${openRems().filter(r=>r.due<today()).length}</b></div>
-    <div class="stat"><span class="lbl">Untouched 30+ days</span><b>${needsAttention().length}</b></div>
+    <div class="stat"><span class="lbl">No follow-up date</span><b>${needsAttention().filter(x=>x.none).length}</b></div>
     <div class="stat"><span class="lbl">People behind</span><b class="${rows.some(r=>r.status==="behind")?"due-over":""}">${rows.filter(r=>r.status==="behind").length}</b></div>
   </div>
   <div class="pacegrid">${rows.map(r=>`<div class="pacecard st-${r.status}"><div class="pc-head"><b>${esc(r.n)}</b><span class="pstat ps-${r.status}">${lbl[r.status]}</span></div>

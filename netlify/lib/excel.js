@@ -79,7 +79,7 @@ function shape(data) {
     const owned = data.accounts.filter((a) => owners(a).includes(u.name));
     return { name: u.name, owned: owned.length, t7: acts.filter((x) => within(x, 7)).length, t30: acts.filter((x) => within(x, 30)).length,
       visits30: acts.filter((x) => x.kind === "visit" && within(x, 30)).length,
-      overdue: data.reminders.filter((r) => r.assignee === u.name && r.due < t).length + owned.filter((a) => a.nextDate && a.nextDate < t).length };
+      overdue: new Set([...data.reminders.filter((r) => !r.done && r.assignee === u.name && r.due < t).map((r) => r.accountId || r.id), ...owned.filter((a) => a.nextDate && a.nextDate < t).map((a) => a.id)]).size };
   }).sort((a, b) => a.name.split(" ").pop().localeCompare(b.name.split(" ").pop()));
   return { prospects, clients, people, followups, activity, team, stageCounts: STAGES.map((s) => [s, rows.filter((r) => r.stage === s).length]) };
 }
