@@ -211,6 +211,18 @@ h3{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute
 .h-hot{background:var(--bad-soft);color:var(--bad)}.h-warm{background:var(--warn-soft);color:var(--warn)}.h-cold{background:var(--cold-soft);color:var(--cold)}
 select.heatsel.h-hot{border-color:var(--bad)}select.heatsel.h-warm{border-color:var(--warn)}select.heatsel.h-cold{border-color:var(--cold)}
 .heatwhy{font-size:12.5px;margin:6px 0 0}
+.due-soon{color:var(--warn);font-weight:600}
+.incbox{display:grid;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:8px}
+.bidline{display:grid;grid-template-columns:1.4fr 1fr .7fr 1fr 1fr auto;gap:8px;align-items:end}
+.bidline .bidrm{padding:6px 10px}
+.bidbox{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:0}
+.bidbox summary{cursor:pointer;font-weight:600}
+.bidgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
+.bidout{border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto}
+.bidtable{width:100%;border-collapse:collapse;font-size:13px}.bidtable th{text-align:left;font-weight:600;color:var(--muted);padding:4px 6px;white-space:nowrap}.bidtable td{padding:4px 6px;border-top:1px solid var(--line)}
+.bidtot{display:flex;flex-wrap:wrap;gap:18px;margin-top:10px}.bidtot b{display:block;font-size:17px}
+.bidsum{margin-top:4px;max-width:60ch}.bidacts{display:flex;gap:12px;margin-top:4px}
+@media (max-width:640px){.bidline{grid-template-columns:1fr 1fr;}.bidline .bidrm{justify-self:end}}
 .dot{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:9px;background:var(--bad);color:var(--surface);font-family:var(--f-mono);font-size:11px;margin-left:5px;padding:0 4px}
 .subnav{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .subnav a{padding:8px 14px;text-decoration:none;color:var(--muted);font-family:var(--f-display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-bottom:3px solid transparent;margin-bottom:-1px}
@@ -426,6 +438,62 @@ const ADMIN_VIEWS=[["pace","Team pace"],["audit","Audit log"],["employees","Empl
 const TOUCHK=["call","email","meeting","visit","note"];
 const GENERIC=["gmail.com","yahoo.com","outlook.com","hotmail.com","icloud.com","aol.com","comcast.net","att.net","live.com","msn.com","me.com"];
 const DEAL_STAGES=["Open","Proposal sent","Negotiating","Won","Lost"];
+/* ---------- current security provider and contract renewal ---------- */
+const PROVIDERS=["Allied Universal","Securitas","GardaWorld","Signal 88","Weiser Security","Pinkerton","Off duty police","In-house security","No security now"];
+const RENEW_LEAD=120; // days before their contract ends that the renewal follow-up lands
+const addDays=(d,n)=>{const x=new Date(d+"T12:00:00");x.setDate(x.getDate()+n);return x.toLocaleDateString("en-CA")};
+const daysUntil=d=>Math.round((new Date(d+"T12:00:00")-new Date(today()+"T12:00:00"))/864e5);
+function renewTag(a){const e=a.incumbent&&a.incumbent.ends;if(!e)return"";const n=daysUntil(e);
+  return n<0?`<span class="muted">ended ${fmtDate(e)}</span>`:`<span class="mono ${n<=180?"due-soon":""}">ends ${fmtDate(e)} · ${n<=60?n+" days":Math.round(n/30.4)+" months"}</span>`}
+/* ---------- bid builder ---------- */
+// Defaults come from the GuardOps billing numbers. Burden and profit are starting points; change them per bid.
+const BID_DEF={burden:18,gl:2,ovh:15,admin:12,profit:10};
+const BID_RATES=[["burden","Burden on pay (taxes, workers comp, uniforms)"],["gl","GL / umbrella"],["ovh","Overhead"],["admin","Admin salary"],["profit","Profit"]];
+const BID_ADDONS=[["veh","Patrol vehicle",186,"wk"],["ins","Auto insurance",65,"wk"],["fuel","Fuel",100,"wk"],["cart","Golf cart",61,"wk"],["cam","Body camera",18,"wk"],["flock","Flock camera",99,"mo"],["trailer","Flock trailer",528,"yr"]];
+const BID_HRS=[[168,"24/7 (168)"],[84,"12 hrs x 7 (84)"],[72,"Nights, 12 hrs x 6 (72)"],[60,"12 hrs x 5 (60)"],[40,"8 hrs x 5 (40)"]];
+const perWeek=(c,u)=>u==="wk"?c:u==="mo"?c*12/52:c/52;
+function bidLineHTML(i,l){l=l||{post:"Post "+(i+1),type:"Unarmed",n:1,hrs:168,pay:""};
+  return `<div class="bidline" data-i="${i}"><label><span class="lbl">Post</span><input type="text" id="bl${i}_post" value="${esc(l.post)}"></label>
+    <label><span class="lbl">Type</span><select id="bl${i}_type">${["Unarmed","Armed","Patrol","Supervisor"].map(x=>`<option ${x===l.type?"selected":""}>${x}</option>`).join("")}</select></label>
+    <label><span class="lbl">Officers</span><input type="number" min="1" step="1" id="bl${i}_n" value="${esc(l.n)}"></label>
+    <label><span class="lbl">Hours a week each</span><input type="number" min="1" step="1" id="bl${i}_hrs" value="${esc(l.hrs)}" list="bidHrs"></label>
+    <label><span class="lbl">Pay rate ($/hr)</span><input type="text" inputmode="decimal" id="bl${i}_pay" value="${esc(l.pay)}" placeholder="15.00"></label>
+    <button type="button" class="btn ghost bidrm" data-act="bidrm" aria-label="Remove this post">×</button></div>`}
+function bidForm(a,d){const b=(d&&d.bid)||{},r={...BID_DEF,...(b.rates||{})},ad=b.addons||{},lines=b.lines&&b.lines.length?b.lines:[null];
+  return `<h3>${d?"Edit bid":"Build a bid"}</h3><p class="muted" style="margin:0;font-size:13px">Enter the posts and pay. The bill rate and totals work out as you type, then save it as a deal on this account.</p>
+    <label><span class="lbl">Bid name</span><input type="text" id="bName" value="${esc(d?d.name:"Security services")}" required></label>
+    <datalist id="bidHrs">${BID_HRS.map(([h,l])=>`<option value="${h}" label="${l}">`).join("")}</datalist>
+    <div id="bidLines">${lines.map((l,i)=>bidLineHTML(i,l)).join("")}</div>
+    <button type="button" class="btn" data-act="bidadd">Add a post</button>
+    <fieldset class="bidbox"><legend>Add-ons (how many)</legend><div class="bidgrid">${BID_ADDONS.map(([k,l,c,u])=>`<label><span class="lbl">${l} <span class="muted">${money(c)}/${u}</span></span><input type="number" min="0" step="1" id="bA_${k}" value="${esc(ad[k]||0)}"></label>`).join("")}</div></fieldset>
+    <details class="bidbox"><summary>Rates (%)</summary><div class="bidgrid">${BID_RATES.map(([k,l])=>`<label><span class="lbl">${l}</span><input type="text" inputmode="decimal" id="bR_${k}" value="${esc(r[k])}"></label>`).join("")}</div></details>
+    <div id="bidOut" class="bidout"></div>
+    <div class="row2"><label><span class="lbl">Stage</span><select id="bStage">${DEAL_STAGES.map(x=>`<option ${x===(d?d.stage:"Open")?"selected":""}>${x}</option>`).join("")}</select></label>
+    <label><span class="lbl">Expected close</span><input type="date" id="bClose" value="${esc(d?d.closeDate||"":"")}"></label>
+    <label><span class="lbl">Owner</span><select id="bOwner">${ownerOpts(d?d.owner:own(a)[0]||S.me)}</select></label></div>
+    <div class="end"><button type="button" class="btn ghost" data-act="cancel">Cancel</button><button class="btn pri">${d?"Update bid":"Save bid as deal"}</button></div>`}
+function bidRead(){const num=id=>{const e=document.getElementById(id);return e?parseFloat(String(e.value).replace(/[$,%\s]/g,""))||0:0},str=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
+  const rates={};BID_RATES.forEach(([k])=>rates[k]=num("bR_"+k));
+  const addons={};BID_ADDONS.forEach(([k])=>{const q=num("bA_"+k);if(q>0)addons[k]=q});
+  const lines=[...document.querySelectorAll("#bidLines .bidline")].map(row=>{const i=row.dataset.i;return {post:str(`bl${i}_post`)||"Post",type:str(`bl${i}_type`),n:num(`bl${i}_n`)||0,hrs:num(`bl${i}_hrs`)||0,pay:num(`bl${i}_pay`)}});
+  return bidCalc({rates,addons,lines})}
+// bill rate = pay loaded with burden, divided by what's left after overhead and profit, rounded up to the next quarter
+function bidCalc({rates,addons,lines}){const cut=(rates.gl+rates.ovh+rates.admin+rates.profit)/100;
+  const L=lines.map(l=>{const loaded=l.pay*(1+rates.burden/100),bill=cut<1&&l.pay?Math.ceil(loaded/(1-cut)*4)/4:0,hrs=l.n*l.hrs;return {...l,loaded:+loaded.toFixed(2),bill,hrsWk:hrs,wk:+(bill*hrs).toFixed(2),costWk:+(loaded*hrs).toFixed(2)}});
+  const addCostWk=BID_ADDONS.reduce((s,[k,,c,u])=>s+(addons[k]||0)*perWeek(c,u),0),addWk=rates.profit<100?addCostWk/(1-rates.profit/100):addCostWk;
+  const wk=L.reduce((s,l)=>s+l.wk,0)+addWk,costWk=L.reduce((s,l)=>s+l.costWk,0)+addCostWk,overWk=L.reduce((s,l)=>s+l.wk,0)*(rates.gl+rates.ovh+rates.admin)/100;
+  const profitWk=wk-costWk-overWk,mo=wk*52/12;
+  return {rates,addons,lines:L,totals:{wk:+wk.toFixed(2),mo:+mo.toFixed(2),yr:+(wk*52).toFixed(2),addWk:+addWk.toFixed(2),hrsWk:L.reduce((s,l)=>s+l.hrsWk,0),profitMo:+(profitWk*52/12).toFixed(2),profitPct:wk?+(profitWk/wk*100).toFixed(1):0}}}
+const money2=n=>"$"+(Number(n)||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+function bidOutHTML(b){const t=b.totals;if(!b.lines.some(l=>l.pay))return `<p class="muted" style="margin:0">Enter a pay rate to see the bill rate.</p>`;
+  return `<table class="bidtable"><thead><tr><th>Post</th><th>Hours/wk</th><th>Pay</th><th>Loaded</th><th>Bill rate</th><th>Weekly</th></tr></thead><tbody>
+    ${b.lines.map(l=>`<tr><td>${esc(l.post)} <span class="muted">${esc(l.type)}${l.n>1?" x"+l.n:""}</span></td><td class="mono">${l.hrsWk}</td><td class="mono">${money2(l.pay)}</td><td class="mono">${money2(l.loaded)}</td><td class="mono"><b>${money2(l.bill)}</b></td><td class="mono">${money(l.wk)}</td></tr>`).join("")}
+    ${t.addWk?`<tr><td>Add-ons</td><td></td><td></td><td></td><td></td><td class="mono">${money(t.addWk)}</td></tr>`:""}</tbody></table>
+    <div class="bidtot"><div><span class="lbl">Weekly</span><b>${money(t.wk)}</b></div><div><span class="lbl">Monthly</span><b>${money(t.mo)}</b></div><div><span class="lbl">Yearly</span><b>${money(t.yr)}</b></div><div><span class="lbl">Profit after overhead</span><b class="${t.profitMo<0?"due-over":""}">${money(t.profitMo)}/mo · ${t.profitPct}%</b></div></div>`}
+function bidRender(){const o=document.getElementById("bidOut");if(o)o.innerHTML=bidOutHTML(bidRead())}
+function bidEnsureLines(n){const box=document.getElementById("bidLines");if(!box)return;while(box.children.length<n){const i=Math.max(-1,...[...box.children].map(x=>+x.dataset.i))+1;box.insertAdjacentHTML("beforeend",bidLineHTML(i))}}
+function bidSummary(d){const b=d.bid;if(!b)return"";const t=b.totals;
+  return `${b.lines.map(l=>`${l.post} (${l.type}${l.n>1?", "+l.n+" officers":""}): ${l.hrsWk} hrs/wk at ${money2(l.bill)}/hr`).join("; ")}${t.addWk?`; add-ons ${money(t.addWk)}/wk`:""}. Total ${money(t.wk)}/wk, ${money(t.mo)}/mo, ${money(t.yr)}/yr.`}
 const S={lim:(window.matchMedia("(max-width:820px)").matches?25:50),actAll:false,homeOpen:{},excel:{},users:[],reminders:[],boardAll:false,boardMine:false,au:{who:"",kind:"",q:""},admins:[],loginName:"",isOwner:false,levelAdmin:false,accounts:new Map(),activity:[],deals:[],team:[],me:"",view:"home",open:null,composer:null,loaded:false,canWrite:true,
   f:{q:"",list:"",stage:"",owner:"",lane:"",heat:"",sort:"order",dir:1}};
 let db=null,user=null,uid=null;
@@ -614,6 +682,8 @@ function homeHTML(){
       <div class="mini" style="margin-top:10px">${openDeals.sort((a,b)=>String(a.closeDate||"9").localeCompare(b.closeDate||"9")).slice(0,6).map(d=>{const a=S.accounts.get(d.accountId);return a?item(a,`<span class="mono">${money(annual(d))}/yr</span>`,esc(`${d.name} · ${d.stage}${d.closeDate?" · close "+fmtDate(d.closeDate):""}`)):""}).join("")||'<div class="empty">No open deals. Add one from any account.</div>'}</div></div>
     <div class="panel na"><h3>Needs attention${S.me?" · yours":""}</h3><p class="muted" style="margin:-4px 0 8px;font-size:13px">Owned accounts past the follow-up date their owner picked, or with no date picked yet.</p><div class="mini">${naMine.slice(0,10).map(x=>item(x.a,ageTag(x),esc((own(x.a).length?ownTxt(x.a):"No owner")+" · "+x.a.stage+(x.lt?" · last touch "+fmtDate(x.lt):"")))).join("")||'<div class="empty">Every account you own has a follow-up date, and none have passed.</div>'}${naMine.length>10?`<div class="empty">${naMine.length-10} more</div>`:""}</div></div>
     <div class="panel"><h3>Follow-ups due in 7 days</h3><div class="rems">${openRems().filter(r=>r.due<=new Date(Date.now()+7*864e5).toLocaleDateString("en-CA")).sort((a,b)=>String(a.due).localeCompare(b.due)).slice(0,10).map(r=>remRow(r,true)).join("")||'<div class="empty">No follow-ups scheduled this week.</div>'}</div></div>
+    ${(()=>{const rn=accts().filter(a=>a.incumbent&&a.incumbent.ends&&daysUntil(a.incumbent.ends)>=-30&&daysUntil(a.incumbent.ends)<=180).sort((x,y)=>x.incumbent.ends.localeCompare(y.incumbent.ends));
+      return `<div class="panel"><h3>Contracts ending in 6 months</h3><div class="mini">${rn.slice(0,10).map(a=>item(a,renewTag(a),esc((a.incumbent.provider||"Unknown provider")+(own(a).length?" · "+ownTxt(a):"")))).join("")||'<div class="empty">None yet. Open an account, More, Current security, and add when their contract ends.</div>'}</div></div>`})()}
     <div class="panel"><h3>Call this week</h3><div class="mini">${ctw.map(a=>item(a,`<span class="pill ${stCls(a.stage)}">${esc(a.stage)}</span>`,own(a).length?esc((own(a).length>1?"Owners: ":"Owner: ")+ownTxt(a)):'<span class="unassigned">No owner yet</span>')).join("")||'<div class="empty">Nothing on this list.</div>'}</div></div>
     <div class="panel"><h3>Next steps due in 7 days</h3><div class="mini">${due.map(a=>item(a,`<span class="mono ${nextOver(a)?"due-over":""}">${nextOver(a)?"Overdue ":""}${fmtDate(a.nextDate)}</span>`,esc((own(a).length?ownTxt(a)+": ":"")+(a.nextAction||"")))).join("")||'<div class="empty">No next steps are scheduled. Set one from any account.</div>'}</div></div>
     <div class="panel"><h3>Handoffs waiting</h3><div class="mini">${ho.map(a=>item(a,`<span class="mono">${fmtDate(a.handoff.at)}</span>`,esc(`${a.handoff.from||"Unassigned"} to ${a.handoff.to}`))).join("")||'<div class="empty">No leads are waiting to be accepted.</div>'}</div></div>
@@ -673,7 +743,7 @@ function employeesHTML(){
   ${excelPanel()}
   <p class="muted" style="max-width:66ch;margin-top:14px;font-size:13px">Reset PIN signs that person out everywhere and lets them make a new PIN at their next sign in. Removing someone stops them signing in but keeps everything they logged.</p>`;}
 /* ---------- drawer ---------- */
-function kindLabel(k){return({heat:"Temperature",deletetest:"Test account deleted",lane:"Lane",employee:"Employee change",pinreset:"PIN reset",reminder:"Reminder set",followup:"Follow-up done",call:"Call",email:"Email",meeting:"Meeting",deal:"Deal",contact:"Contact added",visit:"Site visit",note:"Note",handoff:"Handoff",converted:"Became client",reverted:"Back to prospect",stage:"Stage change",owner:"Owner change",research:"Research",created:"Added",next:"Next step",accepted:"Handoff accepted",edit:"Details edited"})[k]||k}
+function kindLabel(k){return({heat:"Temperature",incumbent:"Current security",deletetest:"Test account deleted",lane:"Lane",employee:"Employee change",pinreset:"PIN reset",reminder:"Reminder set",followup:"Follow-up done",call:"Call",email:"Email",meeting:"Meeting",deal:"Deal",contact:"Contact added",visit:"Site visit",note:"Note",handoff:"Handoff",converted:"Became client",reverted:"Back to prospect",stage:"Stage change",owner:"Owner change",research:"Research",created:"Added",next:"Next step",accepted:"Handoff accepted",edit:"Details edited"})[k]||k}
 function ownerOpts(sel){return `<option value="">No owner</option>`+[...new Set([...S.team,sel].filter(Boolean))].map(n=>`<option ${n===sel?"selected":""}>${esc(n)}</option>`).join("")}
 
 function renderDrawer(){
@@ -720,6 +790,8 @@ function renderDrawer(){
       <details class="more"><summary class="btn big" ${ce?"":'aria-disabled="true"'}>More</summary>
         <div class="menu">
           <button data-comp="contact" ${dis}>Add contact</button>
+          <button data-comp="bid" ${dis}>Build a bid</button>
+          <button data-comp="incumbent" ${dis}>Current security</button>
           <button data-comp="deal" ${dis}>Add deal</button>
           <button data-comp="handoff" ${dis}>Hand off</button>
           ${a.type==="client"?`<button data-comp="revert" ${dis}>Move back to prospect</button>`:`<button data-comp="convert" ${dis}>Convert to client</button>`}
@@ -739,7 +811,8 @@ function bodyHTML(a){
   return `${ho}
   ${hx.tier?`<p class="heatwhy muted">${heatChip(a,hx)} ${hx.pinned?`Set by hand by ${esc(a.heatPin.by||"owner")}. The CRM's own read is ${hx.auto}: `:""}${esc(hx.why.join(", ")||"no activity yet")}.</p>`:""}
   <div class="nextbox"><div class="txt"><span class="lbl">Next</span><div>${a.nextAction?esc(a.nextAction):'<span class="muted">Nothing scheduled. Use Follow-up to set the next step.</span>'}</div></div>${a.nextDate?`<span class="mono ${nextOver(a)?"due-over":""}">${nextOver(a)?"Overdue · ":""}${fmtDate(a.nextDate)}</span>`:""}</div>
-  ${(()=>{const ds=S.deals.filter(d=>d.accountId===a.id);return ds.length?`<section><div class="sechead"><h3>Deals</h3></div><div class="deals">${ds.map(d=>`<div class="deal"><div><b>${esc(d.name)}</b><div class="sub">${esc(d.stage)}${d.owner?" · "+esc(d.owner):""}${d.closeDate?" · close "+fmtDate(d.closeDate):""}</div></div><div style="text-align:right"><div class="v">${money(d.value)}<span class="muted" style="font-size:13px">/${d.term==="monthly"?"mo":"yr"}</span></div><select data-dealstage="${esc(d.id)}" aria-label="Deal stage" ${canEdit(a)?"":"disabled"}>${DEAL_STAGES.map(s=>`<option ${s===d.stage?"selected":""}>${s}</option>`).join("")}</select></div></div>`).join("")}</div></section>`:""})()}
+  ${(()=>{const inc=a.incumbent;return `<section><div class="sechead"><h3>Current security</h3>${canEdit(a)?`<button class="btn" data-comp="incumbent">${inc&&inc.provider?"Edit":"Add"}</button>`:""}</div>${inc&&(inc.provider||inc.ends)?`<div class="incbox"><div><b>${esc(inc.provider||"Unknown provider")}</b>${inc.rate?` <span class="muted mono">at ${money2(inc.rate)}/hr</span>`:""}</div><div>${renewTag(a)}</div>${inc.notes?`<p class="muted" style="margin:4px 0 0">${esc(inc.notes)}</p>`:""}</div>`:'<p class="muted" style="margin:0;font-size:13px">Who guards them now and when that contract ends. The CRM sets a follow-up '+RENEW_LEAD+' days before it ends.</p>'}</section>`})()}
+  ${(()=>{const ds=S.deals.filter(d=>d.accountId===a.id);return `<section><div class="sechead"><h3>Deals</h3>${canEdit(a)?'<button class="btn" data-comp="bid">Build a bid</button>':""}</div>${ds.length?`<div class="deals">${ds.map(d=>`<div class="deal"><div><b>${esc(d.name)}</b><div class="sub">${esc(d.stage)}${d.owner?" · "+esc(d.owner):""}${d.closeDate?" · close "+fmtDate(d.closeDate):""}</div>${d.bid?`<div class="sub bidsum">${esc(bidSummary(d))}</div><div class="bidacts">${canEdit(a)?`<button type="button" class="linkish" data-comp="bid" data-preset="${esc(d.id)}">Edit bid</button>`:""}<button type="button" class="linkish" data-copy="${esc(a.company+": "+d.name+". "+bidSummary(d))}">Copy</button></div>`:""}</div><div style="text-align:right"><div class="v">${money(d.value)}<span class="muted" style="font-size:13px">/${d.term==="monthly"?"mo":"yr"}</span></div><select data-dealstage="${esc(d.id)}" aria-label="Deal stage" ${canEdit(a)?"":"disabled"}>${DEAL_STAGES.map(s=>`<option ${s===d.stage?"selected":""}>${s}</option>`).join("")}</select></div></div>`).join("")}</div>`:'<p class="muted" style="margin:0;font-size:13px">No deals yet.</p>'}</section>`})()}
   ${(()=>{const rs=remsFor(a.id);return rs.length?`<section><div class="sechead"><h3>Follow-ups</h3></div><div class="rems">${rs.map(r=>remRow(r,false)).join("")}</div></section>`:""})()}
   <section><h3>Activity${ev.length?` <span class="muted" style="text-transform:none;letter-spacing:0">(${ev.length})</span>`:""}</h3><div class="timeline" style="margin-top:12px">${(S.actAll?ev:ev.slice(0,5)).map(x=>`<div class="ev k-${esc(x.kind)}"><div class="h"><span class="kind">${esc(kindLabel(x.kind))}</span><span class="mono muted">${fmtDate(x.date||x.at)}</span><span class="muted">${esc(x.by||"")}</span></div>${x.text?`<p>${esc(x.text)}</p>`:""}${x.contactMet?`<p class="muted">Met with ${esc(x.contactMet)}</p>`:""}</div>`).join("")||'<p class="muted">No activity yet. Use Log activity after your first call or visit.</p>'}</div>${ev.length>5?`<button class="linkish" data-act="actall">${S.actAll?"Show latest 5":"Show all "+ev.length}</button>`:""}</section>
   <details class="acct-details" ${isPhone()?"":"open"}><summary><h3>Account details</h3><span class="muted">Contact, address, research</span></summary><dl class="facts" style="margin-top:10px">
@@ -798,20 +871,30 @@ function openComposer(kind,preset){
       <fieldset style="border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-wrap:wrap;gap:10px 16px"><legend class="lbl">Services</legend>${SERVICES.map((s,i)=>`<label style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="svc${i}" value="${s}">${s}</label>`).join("")}</fieldset>
       <label><span class="lbl">Contract notes</span><textarea id="cText" placeholder="Sites, hours, rate, start date"></textarea></label>${end("Convert to client","ok")}`,
     revert:`<h3>Move back to prospect</h3><label><span class="lbl">Reason</span><textarea id="cText" placeholder="Contract ended, entered by mistake" required></textarea></label>${end("Move back")}`,
+    bid:"",
+    incumbent:(()=>{const inc=a.incumbent||{};return `<h3>Current security</h3><p class="muted" style="margin:0;font-size:13px">If you know when their contract ends, the CRM puts a renewal follow-up on the owner's list ${RENEW_LEAD} days before.</p>
+      <div class="row2"><label><span class="lbl">Who guards them now</span><input type="text" id="iProv" list="provList" value="${esc(inc.provider||"")}" placeholder="Allied Universal, in-house, none"><datalist id="provList">${PROVIDERS.map(x=>`<option value="${x}">`).join("")}</datalist></label>
+      <label><span class="lbl">Contract ends</span><input type="date" id="iEnds" value="${esc(inc.ends||"")}"></label>
+      <label><span class="lbl">Their rate ($/hr, if known)</span><input type="text" inputmode="decimal" id="iRate" value="${esc(inc.rate||"")}"></label></div>
+      <label><span class="lbl">How it's going for them</span><textarea id="iNotes" placeholder="Guards on phones, call-offs, no supervisor visits">${esc(inc.notes||"")}</textarea></label>${end("Save")}`})(),
     edit:detailsForm(a,"editForm").replace(/^<form[^>]*>/,"").replace(/<\/form>$/,"")
   };
-  c.innerHTML=F[kind];
+  S.compPreset=preset||"";
+  if(kind==="bid"){const d=preset?S.deals.find(x=>x.id===preset):null;S.bidDeal=d?d.id:"";c.innerHTML=bidForm(a,d);bidRender()}
+  else c.innerHTML=F[kind];
   c.scrollIntoView({block:"nearest"});
   const first=c.querySelector("textarea,input:not([type=date]),select");first&&first.focus();
 }
-function closeComposer(){const c=$("#composer");if(c){c.hidden=true;c.innerHTML=""}S.composer=null;clearDraft()}
+function closeComposer(){const c=$("#composer");if(c){c.hidden=true;c.innerHTML=""}S.composer=null;S.bidDeal="";S.compPreset="";clearDraft()}
+document.addEventListener("input",e=>{if(e.target.closest&&e.target.closest('#composer[data-kind="bid"]'))bidRender()});
+document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest('#composer[data-kind="bid"]'))bidRender()});
 const DRAFT_FORMS="#composer,#quickForm,#newForm,#personForm";
 function saveDraft(f){const vals={};f.querySelectorAll("input,select,textarea").forEach(el=>{if(el.type==="radio"){if(el.checked)vals["radio:"+el.name]=el.value}else if(el.type==="checkbox"){if(el.id)vals[el.id]=el.checked}else if(el.id)vals[el.id]=el.value});
-  ls.set("vcrm.draft",JSON.stringify({form:f.id,open:S.open,comp:S.composer,view:S.view,vals,at:Date.now()}))}
+  ls.set("vcrm.draft",JSON.stringify({form:f.id,open:S.open,comp:S.composer,preset:S.compPreset||"",lines:f.querySelectorAll(".bidline").length,view:S.view,vals,at:Date.now()}))}
 function clearDraft(){try{localStorage.removeItem("vcrm.draft")}catch(e){}}
 function fillDraft(f,vals){Object.entries(vals).forEach(([k,v])=>{if(k.startsWith("radio:")){const r=f.querySelector(`input[name="${k.slice(6)}"][value="${v}"]`);if(r)r.checked=true;return}
   const el=document.getElementById(k);if(!el)return;if(el.type==="checkbox"){el.checked=!!v;if(k==="rOn"){const rf=document.querySelector(".remfields");if(rf)rf.hidden=!v}}else el.value=v})}
-function hasText(vals){return Object.entries(vals).some(([k,v])=>typeof v==="string"&&v.trim()&&!/Date|Due|Time|Type|Who|Lane|Owner|Stage|Term|list$|owner$|lane$/i.test(k))}
+function hasText(vals){return Object.entries(vals).some(([k,v])=>typeof v==="string"&&v.trim()&&!/Date|Due|Time|Type|Who|Lane|Owner|Stage|Term|list$|owner$|lane$|^bName$|_post$|_n$|_hrs$|^bA_|^bR_|_type$/i.test(k))}
 let restored=false;
 function restoreWork(){if(restored)return;restored=true;
   let d=null;try{d=JSON.parse(localStorage.getItem("vcrm.draft")||"null")}catch(e){}
@@ -819,7 +902,7 @@ function restoreWork(){if(restored)return;restored=true;
     if(d.open&&d.open!=="__new"&&d.open!=="__log"&&!S.accounts.has(d.open)){clearDraft();return}
     if(d.view&&d.view!==S.view&&!d.open)location.hash=d.view;
     S.open=d.open;render();
-    setTimeout(()=>{if(d.form==="composer"&&d.comp)openComposer(d.comp);if(d.form==="personForm"){const pf=$("#personForm");if(pf)pf.hidden=false}
+    setTimeout(()=>{if(d.form==="composer"&&d.comp){openComposer(d.comp,d.preset);if(d.lines)bidEnsureLines(d.lines)}if(d.form==="personForm"){const pf=$("#personForm");if(pf)pf.hidden=false}
       const f=document.getElementById(d.form);if(f){fillDraft(f,d.vals);toast("Picked up where you left off. Your unsaved work is back.")}},80);
     return}
   const o=ls.get("vcrm.open");if(o&&S.accounts.has(o)&&!S.open){S.open=o;render()}}
@@ -836,6 +919,24 @@ async function submitComposer(){
     if(!laneOK(a)&&ty!=="note"){const ln=v("cLane");if(!ln)return toast("Pick the lane before logging contact.");await setLane(a,ln);}
     const ron=document.getElementById("rOn");if(ron&&ron.checked&&!v("rDue"))return toast("Pick the follow-up date on the calendar.");
     await logTouch(a,ty,d,v("cText"),"",by);if(ty!=="note"&&a.nextDate&&d>=a.nextDate&&canEdit(a))await patchAccount(a.id,{nextAction:"",nextDate:""});await addReminderFromForm(S.accounts.get(a.id)||a);toast((TOUCH_TYPES.find(x=>x[0]===ty)||[,"Note"])[1]+(ty==="note"?" saved":" logged")+(document.getElementById("rOn")&&document.getElementById("rOn").checked?" and reminder set":""));}
+  if(k==="bid"){const n=v("bName");if(!n)return toast("Name the bid.");const b=bidRead();if(!b.lines.some(l=>l.pay&&l.hrs&&l.n))return toast("Enter hours and a pay rate for at least one post.");
+    if(b.rates.gl+b.rates.ovh+b.rates.admin+b.rates.profit>=100)return toast("Overhead and profit add up to 100% or more. Check the rates.");
+    const rec={name:n,value:Math.round(b.totals.mo),term:"monthly",stage:v("bStage"),closeDate:v("bClose"),owner:v("bOwner"),bid:{...b,by:S.me,at:nowISO()},updatedAt:nowISO()};
+    if(S.bidDeal){const old=S.deals.find(x=>x.id===S.bidDeal);await queue("deals/"+S.bidDeal,()=>db.doc("deals/"+S.bidDeal).update(rec));
+      await logActivity({accountId:a.id,kind:"deal",text:`Bid updated: ${n}, ${money(b.totals.mo)}/mo${old&&old.value!==rec.value?" (was "+money(old.value)+"/mo)":""}`});toast("Bid updated")}
+    else{await db.collection("deals").add({...rec,accountId:a.id,createdAt:nowISO(),createdBy:S.me}).catch(e=>{toast(errText(e));throw e});
+      await logActivity({accountId:a.id,kind:"deal",text:`Bid built: ${n}, ${money(b.totals.mo)}/mo (${b.totals.hrsWk} hrs/wk)`});toast("Bid saved as a deal")}
+    if(a.type!=="client"&&["Not researched","Researched","Contacted","Meeting"].includes(a.stage)&&rec.stage==="Proposal sent")await patchAccount(a.id,{stage:"Proposal"});}
+  if(k==="incumbent"){const prov=v("iProv"),ends=v("iEnds"),rate=parseFloat(v("iRate").replace(/[$,\s]/g,""))||0,notes=v("iNotes");
+    if(!prov&&!ends&&!notes)return toast("Enter who guards them now or when the contract ends.");
+    const was=a.incumbent||{};await patchAccount(a.id,{incumbent:{provider:prov,ends,rate,notes,by:S.me,at:nowISO()}});
+    await logActivity({accountId:a.id,kind:"incumbent",text:`Current security: ${prov||"unknown"}${ends?", contract ends "+fmtDate(ends):""}${rate?", "+money2(rate)+"/hr":""}${notes?". "+notes:""}`});
+    if(ends&&ends!==was.ends&&daysUntil(ends)>=0){const due=[addDays(ends,-RENEW_LEAD),today()].sort().pop(),who=own(a)[0]||S.me,note=`${prov||"Their"} contract ends ${fmtDate(ends)}. Get in before they renew.`;
+      const old=openRems().find(r=>r.accountId===a.id&&r.renewal);
+      if(old)await queue("reminders/"+old.id,()=>db.doc("reminders/"+old.id).update({due,note}));
+      else await db.collection("reminders").add({accountId:a.id,type:"Follow-up call",due,time:"",assignee:who,note,done:false,createdAt:nowISO(),createdBy:S.me,renewal:true});
+      if(!a.nextDate||due<a.nextDate||nextOver(a))await patchAccount(a.id,{nextAction:"Renewal window: "+note,nextDate:due});
+      toast(`Saved. Renewal follow-up set for ${fmtDate(due)}`)}else toast("Current security saved");}
   if(k==="remind"){if(!v("rDue"))return toast("Pick a date for the follow-up.");await addReminderFromForm(a);toast("Follow-up set");}
   if(k==="note"){const t=v("cText");if(!t)return toast("Write the note first.");await logTouch(a,"note",today(),t,"",S.me);toast("Note saved");}
   if(k==="deal"){const n=v("dName"),val=parseFloat(v("dValue").replace(/[$,\s]/g,""));if(!n)return toast("Name the deal.");if(!(val>=0))return toast("Enter the deal value as a number.");
@@ -922,6 +1023,8 @@ document.addEventListener("click",async e=>{
   if(t.dataset.resetpin){const n=t.dataset.resetpin;if(t.dataset.confirm!=="1"){t.dataset.confirm="1";t.textContent="Confirm reset";setTimeout(()=>{if(t.isConnected){t.dataset.confirm="";t.textContent="Reset PIN"}},4000);return}
     try{const r=await window.crmApi("/api/admin",{action:"resetPin",name:n});if(r.error)throw new Error(r.error);toast(n+" will make a new PIN at next sign in")}catch(err){toast(err.message||"Reset failed")}return}
   const act=t.dataset.act;
+  if(act==="bidadd"){const box=$("#bidLines");if(box){bidEnsureLines(box.children.length+1);bidRender();const f=$("#composer");if(f)saveDraft(f)}return}
+  if(act==="bidrm"){const box=$("#bidLines");if(box&&box.children.length>1){t.closest(".bidline").remove();bidRender();const f=$("#composer");if(f)saveDraft(f)}else toast("A bid needs at least one post.");return}
   if(act==="close"){S.open=null;try{localStorage.removeItem("vcrm.open")}catch(e){}closeComposer();render()}
   if(act==="cancel")closeComposer();
   if(act==="new"){S.open="__new";render()}
