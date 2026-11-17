@@ -60,7 +60,7 @@ nav.tabs a{padding:7px 12px;border-radius:6px;color:var(--muted);text-decoration
 nav.tabs a[aria-current="page"]{background:var(--brand-soft);color:var(--brand)}
 nav.tabs a .n{font-family:var(--f-mono);font-size:11px;margin-left:5px;opacity:.8}
 .whoami{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
-select,input[type=text],input[type=date],input[type=search],textarea{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
+select,input[type=text],input[type=date],input[type=number],input[type=search],textarea{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0}
 textarea{width:100%;min-height:84px;resize:vertical}
 main{padding-block:20px 90px}
 h1,h2,h3{font-family:var(--f-display);font-weight:600;letter-spacing:.03em;text-wrap:balance;margin:0}
@@ -213,7 +213,9 @@ select.heatsel.h-hot{border-color:var(--bad)}select.heatsel.h-warm{border-color:
 .heatwhy{font-size:12.5px;margin:6px 0 0}
 .due-soon{color:var(--warn);font-weight:600}
 .incbox{display:grid;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:8px}
-.bidline{display:grid;grid-template-columns:1.4fr 1fr .7fr 1fr 1fr auto;gap:8px;align-items:end}
+.bidline{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1.1fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:end;padding-bottom:8px;border-bottom:1px dashed var(--line)}
+.bidline>label,.bidgrid>label{min-width:0}.bidline input,.bidline select,.bidgrid input{width:100%;min-width:0;box-sizing:border-box}
+.bidline .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bidline .bidrm{padding:6px 10px}
 .bidbox{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:0}
 .bidbox summary{cursor:pointer;font-weight:600}
@@ -222,7 +224,8 @@ select.heatsel.h-hot{border-color:var(--bad)}select.heatsel.h-warm{border-color:
 .bidtable{width:100%;border-collapse:collapse;font-size:13px}.bidtable th{text-align:left;font-weight:600;color:var(--muted);padding:4px 6px;white-space:nowrap}.bidtable td{padding:4px 6px;border-top:1px solid var(--line)}
 .bidtot{display:flex;flex-wrap:wrap;gap:18px;margin-top:10px}.bidtot b{display:block;font-size:17px}
 .bidsum{margin-top:4px;max-width:60ch}.bidacts{display:flex;gap:12px;margin-top:4px}
-@media (max-width:640px){.bidline{grid-template-columns:1fr 1fr;}.bidline .bidrm{justify-self:end}}
+@media (max-width:900px){.bidline{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)}.bidline .bidrm{justify-self:end}}
+@media (max-width:640px){.bidline{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.bidgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 .dot{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:9px;background:var(--bad);color:var(--surface);font-family:var(--f-mono);font-size:11px;margin-left:5px;padding:0 4px}
 .subnav{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .subnav a{padding:8px 14px;text-decoration:none;color:var(--muted);font-family:var(--f-display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-bottom:3px solid transparent;margin-bottom:-1px}
@@ -456,8 +459,8 @@ function bidLineHTML(i,l){l=l||{post:"Post "+(i+1),type:"Unarmed",n:1,hrs:168,pa
   return `<div class="bidline" data-i="${i}"><label><span class="lbl">Post</span><input type="text" id="bl${i}_post" value="${esc(l.post)}"></label>
     <label><span class="lbl">Type</span><select id="bl${i}_type">${["Unarmed","Armed","Patrol","Supervisor"].map(x=>`<option ${x===l.type?"selected":""}>${x}</option>`).join("")}</select></label>
     <label><span class="lbl">Officers</span><input type="number" min="1" step="1" id="bl${i}_n" value="${esc(l.n)}"></label>
-    <label><span class="lbl">Hours a week each</span><input type="number" min="1" step="1" id="bl${i}_hrs" value="${esc(l.hrs)}" list="bidHrs"></label>
-    <label><span class="lbl">Pay rate ($/hr)</span><input type="text" inputmode="decimal" id="bl${i}_pay" value="${esc(l.pay)}" placeholder="15.00"></label>
+    <label><span class="lbl">Hrs/wk each</span><input type="number" min="1" step="1" id="bl${i}_hrs" value="${esc(l.hrs)}" list="bidHrs"></label>
+    <label><span class="lbl">Pay $/hr</span><input type="text" inputmode="decimal" id="bl${i}_pay" value="${esc(l.pay)}" placeholder="15.00"></label>
     <button type="button" class="btn ghost bidrm" data-act="bidrm" aria-label="Remove this post">×</button></div>`}
 function bidForm(a,d){const b=(d&&d.bid)||{},r={...BID_DEF,...(b.rates||{})},ad=b.addons||{},lines=b.lines&&b.lines.length?b.lines:[null];
   return `<h3>${d?"Edit bid":"Build a bid"}</h3><p class="muted" style="margin:0;font-size:13px">Enter the posts and pay. The bill rate and totals work out as you type, then save it as a deal on this account.</p>

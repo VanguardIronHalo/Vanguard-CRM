@@ -47,7 +47,7 @@
     const said = readNotes((ctx.activity || []).filter((x) => [...TOUCH, "note", "handoff"].includes(x.kind) && day(x)), t);
     if (said) { s += said.pts; why.push(`latest note reads as ${said.label} (${said.pts > 0 ? "+" : ""}${said.pts})`); }
     const ends = a.incumbent && a.incumbent.ends;
-    if (ends) { const n = -ago(ends, t); if (n >= -30 && n <= 180) { s += 2; why.push("their current contract ends " + ends); } }
+    if (ends) { const n = -ago(ends, t); if (n >= -30 && n <= 180) { s += 2; why.push("their current contract ends " + new Date(ends + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })); } }
     if ((a.people || []).some((p) => p.role === "Decision maker")) { s += 1; why.push("decision maker on file"); }
     if (ctx.nextDue && ctx.nextDue >= t) { s += 1; why.push("follow-up scheduled"); }
     if (ctx.nextDue && ctx.nextDue < t) { s -= 1; why.push("follow-up date passed"); }
